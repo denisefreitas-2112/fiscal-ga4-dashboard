@@ -289,12 +289,25 @@ def fmt_num(n):
     return f"{int(n):,}".replace(",", ".")
 
 def show_table(df):
-    styled = (
-        df.style
-        .set_properties(**{"text-align": "center"})
-        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+    rows_html = ""
+    for i, row in df.iterrows():
+        is_total = str(row.iloc[0]).upper() == "TOTAL"
+        row_style = "font-weight:700;color:#f8fafc;border-top:1px solid #334155;" if is_total else "color:#e2e8f0;"
+        cells = "".join(f"<td style='padding:8px 14px;text-align:center;{row_style}'>{v}</td>" for v in row)
+        rows_html += f"<tr>{cells}</tr>"
+    headers = "".join(
+        f"<th style='padding:8px 14px;text-align:center;background:#1e293b;color:#64748b;"
+        f"font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;'>{c}</th>"
+        for c in df.columns
     )
-    st.dataframe(styled, use_container_width=True, hide_index=True)
+    html = (
+        f"<div style='border:1px solid #1e293b;border-radius:10px;overflow:hidden;margin-bottom:1rem;'>"
+        f"<table style='width:100%;border-collapse:collapse;'>"
+        f"<thead><tr>{headers}</tr></thead>"
+        f"<tbody>{rows_html}</tbody>"
+        f"</table></div>"
+    )
+    st.markdown(html, unsafe_allow_html=True)
 
 def mom_delta(df, value_col, ym_col="yearMonth"):
     """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
