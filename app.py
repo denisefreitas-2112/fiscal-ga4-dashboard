@@ -228,66 +228,31 @@ try:
     ordem_mes   = sorted(df_s["yearMonth"].unique())
     meses_label = [f"{MESES[int(m[4:])-1]}/{m[2:4]}" for m in ordem_mes]
 
-    # ── KPIs globais ──────────────────────────────────────────────────────────
-    total_sess  = df_s["sessions"].sum()
-    total_eng   = df_s["engagedSessions"].sum()
-    avg_eng_r   = df_s["engagementRate"].mean() * 100
-    avg_dur     = df_s["averageSessionDuration"].mean()
-    total_leads = df_l["eventCount"].sum()
-    total_dl    = df_dl["eventCount"].sum()
+    def bar_chart(df, x, y, title, color, text_col=None):
+        tc = text_col or y
+        fig = px.bar(df, x=x, y=y, title=title,
+            category_orders={x: meses_label},
+            labels={x:"", y:""},
+            color_discrete_sequence=[color],
+            text=tc)
+        fig.update_traces(textposition="outside", textfont_size=12, cliponaxis=False)
+        fig.update_layout(**PLOTLY_DARK, showlegend=False,
+            margin=dict(t=50, b=20, l=20, r=20),
+            yaxis=dict(showgrid=True, gridcolor="#2d3748"))
+        return fig
 
-    k1, k2, k3, k4, k5, k6 = st.columns(6)
-    k1.metric("Sessoes totais",    fmt_num(total_sess))
-    k2.metric("Sessoes engajadas", fmt_num(total_eng))
-    k3.metric("Engajamento medio", f"{avg_eng_r:.1f}%")
-    k4.metric("Duracao media",     f"{int(avg_dur//60)}m {int(avg_dur%60)}s")
-    k5.metric("Leads gerados",     fmt_num(total_leads))
-    k6.metric("Downloads gratis",  fmt_num(total_dl))
-
-    st.markdown("---")
-
-    # ── Visao geral por canal ─────────────────────────────────────────────────
-    st.markdown("#### Progresso por canal - mes a mes")
-
-    df_geral = df_s.groupby(["yearMonth","mes","canal"], as_index=False).agg(
-        sessions=("sessions","sum")
-    ).sort_values("yearMonth")
-
-    fig_geral = px.line(
-        df_geral, x="mes", y="sessions", color="canal",
-        category_orders={"mes": meses_label},
-        labels={"mes":"","sessions":"Sessoes","canal":"Canal"},
-        color_discrete_map=CORES_CANAL,
-        markers=True,
-    )
-    fig_geral.update_traces(line_width=2.5)
-    fig_geral.update_layout(**PLOTLY_DARK, legend_title="Canal", showlegend=True, hovermode="x unified")
-    st.plotly_chart(fig_geral, use_container_width=True)
-
-    col_ev1, col_ev2 = st.columns(2)
-    with col_ev1:
-        df_lm = df_l.groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum().sort_values("yearMonth")
-        fig_l2 = px.line(df_lm, x="mes", y="eventCount",
-            title="Leads gerados (generate_lead) - progresso",
-            category_orders={"mes": meses_label},
-            labels={"mes":"","eventCount":"Leads"},
-            color_discrete_sequence=["#3b82f6"],
-            markers=True)
-        fig_l2.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(59,130,246,0.1)")
-        fig_l2.update_layout(**PLOTLY_DARK, hovermode="x unified")
-        st.plotly_chart(fig_l2, use_container_width=True)
-
-    with col_ev2:
-        df_dm = df_dl.groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum().sort_values("yearMonth")
-        fig_d2 = px.line(df_dm, x="mes", y="eventCount",
-            title="Downloads gratuitos (lead_form_download) - progresso",
-            category_orders={"mes": meses_label},
-            labels={"mes":"","eventCount":"Downloads"},
-            color_discrete_sequence=["#10b981"],
-            markers=True)
-        fig_d2.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(16,185,129,0.1)")
-        fig_d2.update_layout(**PLOTLY_DARK, hovermode="x unified")
-        st.plotly_chart(fig_d2, use_container_width=True)
+    def bar_chart_multi(df, x, y, color_col, title):
+        fig = px.bar(df, x=x, y=y, color=color_col, title=title,
+            barmode="group",
+            category_orders={x: meses_label},
+            labels={x:"", y:"", color_col:""},
+            color_discrete_map=CORES_CANAL,
+            text=y)
+        fig.update_traces(textposition="outside", textfont_size=11, cliponaxis=False)
+        fig.update_layout(**PLOTLY_DARK,
+            margin=dict(t=50, b=20, l=20, r=20),
+            yaxis=dict(showgrid=True, gridcolor="#2d3748"))
+        return fig
 
     # ═══════════════════════════════════════════════════════════════════════════
     # ANALISTA DE CONTEUDO
@@ -303,6 +268,7 @@ try:
     ).sort_values("yearMonth")
 
     leads_blog = df_l[df_l["canal_key"] == "blog"]["eventCount"].sum()
+    dl_blog_total = df_dl[df_dl["canal_key"] == "blog"]["eventCount"].sum()
 
     if not df_blog_mes.empty:
         b1,b2,b3,b4,b5 = st.columns(5)
@@ -313,52 +279,29 @@ try:
         b4.metric("Duracao media",   f"{int(ad//60)}m {int(ad%60)}s")
         b5.metric("Leads via Blog",  fmt_num(leads_blog))
 
-        col_b1, col_b2, col_b3 = st.columns(3)
-        with col_b1:
-            fig_bs = px.line(df_blog_mes, x="mes", y="sessions",
-                title="Sessoes via Blog",
-                category_orders={"mes": meses_label},
-                labels={"mes":"","sessions":"Sessoes"},
-                color_discrete_sequence=["#10b981"], markers=True)
-            fig_bs.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(16,185,129,0.1)")
-            fig_bs.update_layout(**PLOTLY_DARK, hovermode="x unified")
-            st.plotly_chart(fig_bs, use_container_width=True)
-        with col_b2:
-            fig_be = px.line(df_blog_mes, x="mes", y="engRate",
-                title="Taxa de engajamento - Blog",
-                category_orders={"mes": meses_label},
-                labels={"mes":"","engRate":"Taxa"},
-                color_discrete_sequence=["#10b981"], markers=True)
-            fig_be.update_traces(line_width=2.5)
-            fig_be.update_yaxes(tickformat=".0%")
-            fig_be.update_layout(**PLOTLY_DARK, hovermode="x unified")
-            st.plotly_chart(fig_be, use_container_width=True)
-        with col_b3:
-            df_dl_blog_mes = (
-                df_dl[df_dl["canal_key"] == "blog"]
-                .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
-                .sort_values("yearMonth")
-            )
-            if not df_dl_blog_mes.empty:
-                fig_dl_blog = px.line(df_dl_blog_mes, x="mes", y="eventCount",
-                    title="Downloads gratuitos via Blog",
-                    category_orders={"mes": meses_label},
-                    labels={"mes":"","eventCount":"Downloads"},
-                    color_discrete_sequence=["#34d399"], markers=True)
-                fig_dl_blog.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(52,211,153,0.1)")
-                fig_dl_blog.update_layout(**PLOTLY_DARK, hovermode="x unified")
-                st.plotly_chart(fig_dl_blog, use_container_width=True)
-            else:
-                st.info("Sem downloads via Blog no periodo.")
+        st.plotly_chart(bar_chart(df_blog_mes, "mes", "sessions",
+            "Sessoes via Blog", "#10b981"), use_container_width=True)
+
+        st.plotly_chart(bar_chart(df_blog_mes, "mes", "engagedSessions",
+            "Sessoes engajadas via Blog", "#34d399"), use_container_width=True)
+
+        df_dl_blog_mes = (
+            df_dl[df_dl["canal_key"] == "blog"]
+            .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
+            .sort_values("yearMonth")
+        )
+        if not df_dl_blog_mes.empty:
+            st.plotly_chart(bar_chart(df_dl_blog_mes, "mes", "eventCount",
+                "Downloads gratuitos via Blog", "#059669"), use_container_width=True)
 
         df_bc = (
             df_blog.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
             .query("sessionCampaignName != '(not set)'")
             .sort_values("sessions", ascending=False).head(20)
-            .rename(columns={"sessionCampaignName":"Campanha / Artigo","sessions":"Sessoes"})
+            .rename(columns={"sessionCampaignName":"Artigo / Campanha","sessions":"Sessoes"})
         )
         if not df_bc.empty:
-            st.caption("Top campanhas / artigos do Blog")
+            st.caption("Top artigos e campanhas do Blog")
             st.dataframe(df_bc, use_container_width=True, hide_index=True)
     else:
         st.info("Sem dados de Blog no periodo.")
@@ -379,34 +322,20 @@ try:
 
     if not df_em_mes.empty:
         e1,e2,e3,e4 = st.columns(4)
-        e1.metric("Sessoes",         fmt_num(df_em_mes["sessions"].sum()))
-        e2.metric("Engajadas",       fmt_num(df_em_mes["engagedSessions"].sum()))
-        e3.metric("Leads via E-mail", fmt_num(leads_em))
+        e1.metric("Sessoes",              fmt_num(df_em_mes["sessions"].sum()))
+        e2.metric("Engajadas",            fmt_num(df_em_mes["engagedSessions"].sum()))
+        e3.metric("Leads via E-mail",     fmt_num(leads_em))
         e4.metric("Downloads via E-mail", fmt_num(dl_em))
 
-        col_e1, col_e2 = st.columns(2)
-        with col_e1:
-            fig_es = px.line(df_em_mes, x="mes", y="sessions",
-                title="Sessoes via E-mail - progresso",
-                category_orders={"mes": meses_label},
-                labels={"mes":"","sessions":"Sessoes"},
-                color_discrete_sequence=["#8b5cf6"], markers=True)
-            fig_es.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(139,92,246,0.1)")
-            fig_es.update_layout(**PLOTLY_DARK, hovermode="x unified")
-            st.plotly_chart(fig_es, use_container_width=True)
-        with col_e2:
-            df_le = (df_l[df_l["canal_key"]=="email"]
-                .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
-                .sort_values("yearMonth"))
-            if not df_le.empty:
-                fig_el = px.line(df_le, x="mes", y="eventCount",
-                    title="Leads via E-mail - progresso",
-                    category_orders={"mes": meses_label},
-                    labels={"mes":"","eventCount":"Leads"},
-                    color_discrete_sequence=["#8b5cf6"], markers=True)
-                fig_el.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(139,92,246,0.1)")
-                fig_el.update_layout(**PLOTLY_DARK, hovermode="x unified")
-                st.plotly_chart(fig_el, use_container_width=True)
+        st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
+            "Sessoes via E-mail", "#8b5cf6"), use_container_width=True)
+
+        df_le = (df_l[df_l["canal_key"]=="email"]
+            .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
+            .sort_values("yearMonth"))
+        if not df_le.empty:
+            st.plotly_chart(bar_chart(df_le, "mes", "eventCount",
+                "Leads gerados via E-mail", "#7c3aed"), use_container_width=True)
 
         df_ec = (
             df_em.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
@@ -437,34 +366,20 @@ try:
 
     if not df_mid_mes.empty:
         m1,m2,m3,m4 = st.columns(4)
-        m1.metric("Sessoes",         fmt_num(df_mid_mes["sessions"].sum()))
-        m2.metric("Engajadas",       fmt_num(df_mid_mes["engagedSessions"].sum()))
-        m3.metric("Leads gerados",   fmt_num(leads_mid))
-        m4.metric("Downloads",       fmt_num(dl_mid))
+        m1.metric("Sessoes",       fmt_num(df_mid_mes["sessions"].sum()))
+        m2.metric("Engajadas",     fmt_num(df_mid_mes["engagedSessions"].sum()))
+        m3.metric("Leads gerados", fmt_num(leads_mid))
+        m4.metric("Downloads",     fmt_num(dl_mid))
 
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            fig_ms = px.line(df_mid_mes, x="mes", y="sessions", color="canal",
-                title="Sessoes por canal de midia - progresso",
-                category_orders={"mes": meses_label},
-                labels={"mes":"","sessions":"Sessoes","canal":"Canal"},
-                color_discrete_map=CORES_CANAL, markers=True)
-            fig_ms.update_traces(line_width=2.5)
-            fig_ms.update_layout(**PLOTLY_DARK, hovermode="x unified")
-            st.plotly_chart(fig_ms, use_container_width=True)
-        with col_m2:
-            df_lm2 = (df_l[df_l["canal_key"].isin(KEYS_MIDIA)]
-                .groupby(["yearMonth","mes","canal"], as_index=False)["eventCount"].sum()
-                .sort_values("yearMonth"))
-            if not df_lm2.empty:
-                fig_lm = px.line(df_lm2, x="mes", y="eventCount", color="canal",
-                    title="Leads por canal de midia - progresso",
-                    category_orders={"mes": meses_label},
-                    labels={"mes":"","eventCount":"Leads","canal":"Canal"},
-                    color_discrete_map=CORES_CANAL, markers=True)
-                fig_lm.update_traces(line_width=2.5)
-                fig_lm.update_layout(**PLOTLY_DARK, hovermode="x unified")
-                st.plotly_chart(fig_lm, use_container_width=True)
+        st.plotly_chart(bar_chart_multi(df_mid_mes, "mes", "sessions", "canal",
+            "Sessoes por canal de midia"), use_container_width=True)
+
+        df_lm2 = (df_l[df_l["canal_key"].isin(KEYS_MIDIA)]
+            .groupby(["yearMonth","mes","canal"], as_index=False)["eventCount"].sum()
+            .sort_values("yearMonth"))
+        if not df_lm2.empty:
+            st.plotly_chart(bar_chart_multi(df_lm2, "mes", "eventCount", "canal",
+                "Leads por canal de midia"), use_container_width=True)
 
         df_mc = (
             df_mid.groupby(["canal","sessionCampaignName"], as_index=False)["sessions"].sum()
