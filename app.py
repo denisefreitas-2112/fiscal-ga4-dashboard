@@ -470,8 +470,8 @@ try:
                 "Downloads gratuitos a partir do Blog (fiscal.io)", COR_BARRA),
                 use_container_width=True)
 
-        t_leads_blog = tabela_campanhas("blog", df_l,  "Campanha", com_midia=True)
-        t_dl_blog    = tabela_campanhas("blog", df_dl, "Campanha", com_midia=True)
+        t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo", com_midia=True)
+        t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo", com_midia=True)
         tc1, tc2 = st.columns(2)
         with tc1:
             st.caption("Leads gerados por artigo / campanha")
