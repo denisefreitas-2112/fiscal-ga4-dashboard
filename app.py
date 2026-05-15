@@ -286,7 +286,14 @@ def fmt_num(n):
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
-st.sidebar.image("https://fiscal.io/assets/img/logo-fiscal-io.svg", width=140)
+st.sidebar.markdown(
+    "<div style='padding:0.6rem 0 0.4rem 0;'>"
+    "<span style='font-size:1.25rem;font-weight:800;color:#f8fafc;letter-spacing:-0.02em;'>Fiscal</span>"
+    "<span style='font-size:1.25rem;font-weight:800;color:#1a56db;letter-spacing:-0.02em;'>.IO</span>"
+    "<br><span style='font-size:0.65rem;color:#475569;letter-spacing:0.08em;text-transform:uppercase;'>"
+    "Analytics Dashboard</span></div>",
+    unsafe_allow_html=True,
+)
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Ano de referencia**")
 ano = st.sidebar.selectbox("", [2026, 2025], index=0, label_visibility="collapsed")
