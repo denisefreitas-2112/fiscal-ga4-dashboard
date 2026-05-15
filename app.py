@@ -14,25 +14,15 @@ st.set_page_config(
     layout="wide",
 )
 
-# ── Dark theme ────────────────────────────────────────────────────────────────
+# ── Estilos customizados (complementam o config.toml dark) ───────────────────
 st.markdown("""
 <style>
-    /* fundo geral */
-    .stApp, .stApp > header { background-color: #0f1117; }
-    section[data-testid="stSidebar"] { background-color: #161b27; }
-    /* texto padrao */
-    html, body, [class*="css"] { color: #e2e8f0; }
-    /* cards de KPI */
     div[data-testid="metric-container"] {
-        background: #1a2035;
-        border: 1px solid #2d3748;
+        border: 1px solid #1e3a5f;
         border-left: 4px solid #1a56db;
         border-radius: 8px;
         padding: 0.8rem 1rem;
     }
-    div[data-testid="metric-container"] label { color: #94a3b8 !important; font-size: 0.78rem; }
-    div[data-testid="metric-container"] [data-testid="stMetricValue"] { color: #f1f5f9 !important; font-size: 1.6rem; font-weight: 700; }
-    /* cabecalhos de secao */
     .sec-header {
         background: linear-gradient(90deg, #1a56db 0%, #1e3a8a 100%);
         color: white;
@@ -41,14 +31,7 @@ st.markdown("""
         margin: 1.8rem 0 0.8rem 0;
         font-size: 0.95rem;
         font-weight: 600;
-        letter-spacing: 0.3px;
     }
-    /* tabelas */
-    .stDataFrame { background: #1a2035; }
-    /* divisores */
-    hr { border-color: #2d3748; }
-    /* sidebar */
-    .stSelectbox label, .stCaption { color: #94a3b8; }
 </style>
 """, unsafe_allow_html=True)
 
