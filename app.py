@@ -553,11 +553,10 @@ try:
         delta_sess_em  = mom_delta(df_em_mes, "sessions")
         delta_leads_em = mom_delta(df_l[df_l["canal_key"] == "email"], "eventCount")
 
-        e1, e2, e3, e4 = st.columns(4)
+        e1, e2, e3 = st.columns(3)
         e1.metric("Sessoes via E-mail", fmt_num(total_sess_em), delta=delta_sess_em)
         e2.metric("Leads via E-mail",   fmt_num(leads_em),      delta=delta_leads_em)
         e3.metric("Conv. Lead",         taxa_conv(leads_em, total_sess_em))
-        e4.metric("Conv. Download",     taxa_conv(int(dl_em), total_sess_em))
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
             "Sessoes via E-mail", COR_BARRA), use_container_width=True)
@@ -569,21 +568,12 @@ try:
             st.plotly_chart(bar_chart(df_le, "mes", "eventCount",
                 "Leads gerados via E-mail", COR_BARRA), use_container_width=True)
 
-        t_leads_em = tabela_campanhas("email", df_l,  "Nome do E-mail / Campanha")
-        t_dl_em    = tabela_campanhas("email", df_dl, "Nome do E-mail / Campanha")
-        te1, te2 = st.columns(2)
-        with te1:
-            st.caption("Leads gerados por campanha de e-mail")
-            if not t_leads_em.empty:
-                st.dataframe(t_leads_em, use_container_width=True, hide_index=True)
-            else:
-                st.info("Sem dados.")
-        with te2:
-            st.caption("Downloads por campanha de e-mail")
-            if not t_dl_em.empty:
-                st.dataframe(t_dl_em, use_container_width=True, hide_index=True)
-            else:
-                st.info("Sem dados.")
+        t_leads_em = tabela_campanhas("email", df_l, "Nome do E-mail / Campanha")
+        st.caption("Leads gerados por campanha de e-mail")
+        if not t_leads_em.empty:
+            st.dataframe(t_leads_em, use_container_width=True, hide_index=True)
+        else:
+            st.info("Sem dados.")
     else:
         st.info("Sem dados de e-mail no periodo.")
 
