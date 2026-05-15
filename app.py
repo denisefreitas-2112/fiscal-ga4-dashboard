@@ -294,6 +294,18 @@ try:
             yaxis=dict(showgrid=True, gridcolor="#2d3748"))
         return fig
 
+    def tabela_campanhas(canal_key, df_evento, col_nome, top=20):
+        """Retorna tabela: nome da campanha x total de eventos para o canal."""
+        df = (
+            df_evento[df_evento["canal_key"] == canal_key]
+            .groupby("sessionCampaignName", as_index=False)["eventCount"].sum()
+            .query("sessionCampaignName != '(not set)' and sessionCampaignName != ''")
+            .sort_values("eventCount", ascending=False)
+            .head(top)
+            .rename(columns={"sessionCampaignName": col_nome, "eventCount": "Total"})
+        )
+        return df
+
     # ═══════════════════════════════════════════════════════════════════════════
     # ANALISTA DE CONTEUDO
     # ═══════════════════════════════════════════════════════════════════════════
@@ -337,6 +349,22 @@ try:
             st.plotly_chart(bar_chart(df_dl_blog_mes, "mes", "eventCount",
                 "Downloads gratuitos a partir do Blog (fiscal.io)", "#059669"),
                 use_container_width=True)
+
+        t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo / Campanha")
+        t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo / Campanha")
+        tc1, tc2 = st.columns(2)
+        with tc1:
+            st.caption("Leads gerados por artigo / campanha")
+            if not t_leads_blog.empty:
+                st.dataframe(t_leads_blog, use_container_width=True, hide_index=True)
+            else:
+                st.info("Sem dados.")
+        with tc2:
+            st.caption("Downloads por artigo / campanha")
+            if not t_dl_blog.empty:
+                st.dataframe(t_dl_blog, use_container_width=True, hide_index=True)
+            else:
+                st.info("Sem dados.")
     else:
         st.info("Sem dados de Blog no periodo.")
 
@@ -368,6 +396,22 @@ try:
         if not df_le.empty:
             st.plotly_chart(bar_chart(df_le, "mes", "eventCount",
                 "Leads gerados via E-mail", "#7c3aed"), use_container_width=True)
+
+        t_leads_em = tabela_campanhas("email", df_l,  "Nome do E-mail / Campanha")
+        t_dl_em    = tabela_campanhas("email", df_dl, "Nome do E-mail / Campanha")
+        te1, te2 = st.columns(2)
+        with te1:
+            st.caption("Leads gerados por campanha de e-mail")
+            if not t_leads_em.empty:
+                st.dataframe(t_leads_em, use_container_width=True, hide_index=True)
+            else:
+                st.info("Sem dados.")
+        with te2:
+            st.caption("Downloads por campanha de e-mail")
+            if not t_dl_em.empty:
+                st.dataframe(t_dl_em, use_container_width=True, hide_index=True)
+            else:
+                st.info("Sem dados.")
     else:
         st.info("Sem dados de e-mail no periodo.")
 
@@ -376,7 +420,7 @@ try:
     # ═══════════════════════════════════════════════════════════════════════════
     st.markdown('<div class="sec-header">&#128227; Analista de Midias Digitais &mdash; Google Ads e Meta Ads</div>', unsafe_allow_html=True)
 
-    def graficos_canal(key, label, cor):
+    def graficos_canal(key, label, cor, com_downloads=True):
         df_sess = (df_s[df_s["canal_key"] == key]
             .groupby(["yearMonth","mes"], as_index=False)["sessions"].sum()
             .sort_values("yearMonth"))
@@ -391,10 +435,15 @@ try:
         total_leads = df_lead["eventCount"].sum() if not df_lead.empty else 0
         total_dl    = df_down["eventCount"].sum() if not df_down.empty else 0
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric(f"Sessoes {label}",   fmt_num(total_sess))
-        c2.metric(f"Leads {label}",     fmt_num(total_leads))
-        c3.metric(f"Downloads {label}", fmt_num(total_dl))
+        if com_downloads:
+            c1, c2, c3 = st.columns(3)
+            c1.metric(f"Sessoes {label}",   fmt_num(total_sess))
+            c2.metric(f"Leads {label}",     fmt_num(total_leads))
+            c3.metric(f"Downloads {label}", fmt_num(total_dl))
+        else:
+            c1, c2 = st.columns(2)
+            c1.metric(f"Sessoes {label}", fmt_num(total_sess))
+            c2.metric(f"Leads {label}",   fmt_num(total_leads))
 
         if not df_sess.empty:
             st.plotly_chart(bar_chart(df_sess, "mes", "sessions",
@@ -402,13 +451,38 @@ try:
         if not df_lead.empty:
             st.plotly_chart(bar_chart(df_lead, "mes", "eventCount",
                 f"Leads gerados — {label}", cor), use_container_width=True)
-        if not df_down.empty:
+        if com_downloads and not df_down.empty:
             st.plotly_chart(bar_chart(df_down, "mes", "eventCount",
                 f"Downloads gratuitos — {label}", cor), use_container_width=True)
 
-    graficos_canal("gads", "Google Ads", "#3b82f6")
+        # Tabelas de campanha
+        t_leads = tabela_campanhas(key, df_l,  "Campanha")
+        col_nome = "Campanha"
+        if com_downloads:
+            t_dl = tabela_campanhas(key, df_dl, col_nome)
+            tm1, tm2 = st.columns(2)
+            with tm1:
+                st.caption(f"Leads por campanha — {label}")
+                if not t_leads.empty:
+                    st.dataframe(t_leads, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Sem dados.")
+            with tm2:
+                st.caption(f"Downloads por campanha — {label}")
+                if not t_dl.empty:
+                    st.dataframe(t_dl, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Sem dados.")
+        else:
+            st.caption(f"Leads por campanha — {label}")
+            if not t_leads.empty:
+                st.dataframe(t_leads, use_container_width=True, hide_index=True)
+            else:
+                st.info("Sem dados.")
+
+    graficos_canal("gads", "Google Ads", "#3b82f6", com_downloads=True)
     st.markdown("---")
-    graficos_canal("meta", "Meta Ads",   "#1877f2")
+    graficos_canal("meta", "Meta Ads",   "#1877f2", com_downloads=False)
 
 except Exception as e:
     st.error(f"Erro ao conectar ao GA4: {e}")
