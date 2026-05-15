@@ -122,6 +122,8 @@ CORES_CANAL = {
 
 CANAIS_MIDIA = ["Google Ads", "Meta Ads", "Instagram", "LinkedIn", "Social"]
 
+COR_BARRA = "#1a56db"
+
 PLOTLY_DARK = dict(
     template="plotly_dark",
     plot_bgcolor="rgba(0,0,0,0)",
@@ -443,7 +445,7 @@ try:
         # Sessoes: hostName = conteudo.fiscal.io
         st.plotly_chart(bar_chart(
             df_blog_host.sort_values("yearMonth"), "mes", "sessions",
-            "Sessoes no Blog (conteudo.fiscal.io)", "#10b981"),
+            "Sessoes no Blog (conteudo.fiscal.io)", COR_BARRA),
             use_container_width=True)
 
         # Leads: fiscal.io com source=blog
@@ -454,7 +456,7 @@ try:
         )
         if not df_l_blog_mes.empty:
             st.plotly_chart(bar_chart(df_l_blog_mes, "mes", "eventCount",
-                "Leads gerados a partir do Blog (fiscal.io)", "#34d399"),
+                "Leads gerados a partir do Blog (fiscal.io)", COR_BARRA),
                 use_container_width=True)
 
         # Downloads: fiscal.io com source=blog
@@ -465,7 +467,7 @@ try:
         )
         if not df_dl_blog_mes.empty:
             st.plotly_chart(bar_chart(df_dl_blog_mes, "mes", "eventCount",
-                "Downloads gratuitos a partir do Blog (fiscal.io)", "#059669"),
+                "Downloads gratuitos a partir do Blog (fiscal.io)", COR_BARRA),
                 use_container_width=True)
 
         t_leads_blog = tabela_campanhas("blog", df_l,  "Campanha", com_midia=True)
@@ -506,14 +508,14 @@ try:
         e2.metric("Leads via E-mail",   fmt_num(leads_em))
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
-            "Sessoes via E-mail", "#8b5cf6"), use_container_width=True)
+            "Sessoes via E-mail", COR_BARRA), use_container_width=True)
 
         df_le = (df_l[df_l["canal_key"]=="email"]
             .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
             .sort_values("yearMonth"))
         if not df_le.empty:
             st.plotly_chart(bar_chart(df_le, "mes", "eventCount",
-                "Leads gerados via E-mail", "#7c3aed"), use_container_width=True)
+                "Leads gerados via E-mail", COR_BARRA), use_container_width=True)
 
         t_leads_em = tabela_campanhas("email", df_l,  "Nome do E-mail / Campanha")
         t_dl_em    = tabela_campanhas("email", df_dl, "Nome do E-mail / Campanha")
@@ -599,10 +601,10 @@ try:
                 st.info("Sem dados.")
 
     st.markdown('<div class="sub-header">Google Ads</div>', unsafe_allow_html=True)
-    graficos_canal("gads", "Google Ads", "#3b82f6", com_downloads=True)
+    graficos_canal("gads", "Google Ads", COR_BARRA, com_downloads=True)
     st.markdown("---")
     st.markdown('<div class="sub-header sub-header-meta">Meta Ads</div>', unsafe_allow_html=True)
-    graficos_canal("meta", "Meta Ads",   "#1877f2", com_downloads=False)
+    graficos_canal("meta", "Meta Ads",   COR_BARRA, com_downloads=False)
 
 except Exception as e:
     st.error(f"Erro ao conectar ao GA4: {e}")
