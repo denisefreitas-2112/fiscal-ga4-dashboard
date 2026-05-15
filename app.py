@@ -271,19 +271,24 @@ try:
     dl_blog_total = df_dl[df_dl["canal_key"] == "blog"]["eventCount"].sum()
 
     if not df_blog_mes.empty:
-        b1,b2,b3,b4,b5 = st.columns(5)
+        b1,b2,b3,b4 = st.columns(4)
         b1.metric("Sessoes",         fmt_num(df_blog_mes["sessions"].sum()))
-        b2.metric("Engajadas",       fmt_num(df_blog_mes["engagedSessions"].sum()))
-        b3.metric("Tx. engajamento", f"{df_blog_mes['engRate'].mean()*100:.1f}%")
+        b2.metric("Leads via Blog",  fmt_num(leads_blog))
+        b3.metric("Downloads via Blog", fmt_num(dl_blog_total))
         ad = df_blog_mes["avgDur"].mean()
         b4.metric("Duracao media",   f"{int(ad//60)}m {int(ad%60)}s")
-        b5.metric("Leads via Blog",  fmt_num(leads_blog))
 
         st.plotly_chart(bar_chart(df_blog_mes, "mes", "sessions",
             "Sessoes via Blog", "#10b981"), use_container_width=True)
 
-        st.plotly_chart(bar_chart(df_blog_mes, "mes", "engagedSessions",
-            "Sessoes engajadas via Blog", "#34d399"), use_container_width=True)
+        df_l_blog_mes = (
+            df_l[df_l["canal_key"] == "blog"]
+            .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
+            .sort_values("yearMonth")
+        )
+        if not df_l_blog_mes.empty:
+            st.plotly_chart(bar_chart(df_l_blog_mes, "mes", "eventCount",
+                "Leads gerados via Blog", "#34d399"), use_container_width=True)
 
         df_dl_blog_mes = (
             df_dl[df_dl["canal_key"] == "blog"]
@@ -293,16 +298,6 @@ try:
         if not df_dl_blog_mes.empty:
             st.plotly_chart(bar_chart(df_dl_blog_mes, "mes", "eventCount",
                 "Downloads gratuitos via Blog", "#059669"), use_container_width=True)
-
-        df_bc = (
-            df_blog.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
-            .query("sessionCampaignName != '(not set)'")
-            .sort_values("sessions", ascending=False).head(20)
-            .rename(columns={"sessionCampaignName":"Artigo / Campanha","sessions":"Sessoes"})
-        )
-        if not df_bc.empty:
-            st.caption("Top artigos e campanhas do Blog")
-            st.dataframe(df_bc, use_container_width=True, hide_index=True)
     else:
         st.info("Sem dados de Blog no periodo.")
 
@@ -321,11 +316,9 @@ try:
     dl_em    = df_dl[df_dl["canal_key"] == "email"]["eventCount"].sum()
 
     if not df_em_mes.empty:
-        e1,e2,e3,e4 = st.columns(4)
-        e1.metric("Sessoes",              fmt_num(df_em_mes["sessions"].sum()))
-        e2.metric("Engajadas",            fmt_num(df_em_mes["engagedSessions"].sum()))
-        e3.metric("Leads via E-mail",     fmt_num(leads_em))
-        e4.metric("Downloads via E-mail", fmt_num(dl_em))
+        e1,e2 = st.columns(2)
+        e1.metric("Sessoes via E-mail", fmt_num(df_em_mes["sessions"].sum()))
+        e2.metric("Leads via E-mail",   fmt_num(leads_em))
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
             "Sessoes via E-mail", "#8b5cf6"), use_container_width=True)
@@ -336,16 +329,6 @@ try:
         if not df_le.empty:
             st.plotly_chart(bar_chart(df_le, "mes", "eventCount",
                 "Leads gerados via E-mail", "#7c3aed"), use_container_width=True)
-
-        df_ec = (
-            df_em.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
-            .query("sessionCampaignName != '(not set)'")
-            .sort_values("sessions", ascending=False).head(20)
-            .rename(columns={"sessionCampaignName":"Campanha / E-mail","sessions":"Sessoes"})
-        )
-        if not df_ec.empty:
-            st.caption("Top campanhas de e-mail")
-            st.dataframe(df_ec, use_container_width=True, hide_index=True)
     else:
         st.info("Sem dados de e-mail no periodo.")
 
@@ -365,31 +348,27 @@ try:
     dl_mid    = df_dl[df_dl["canal_key"].isin(KEYS_MIDIA)]["eventCount"].sum()
 
     if not df_mid_mes.empty:
-        m1,m2,m3,m4 = st.columns(4)
+        m1,m2,m3 = st.columns(3)
         m1.metric("Sessoes",       fmt_num(df_mid_mes["sessions"].sum()))
-        m2.metric("Engajadas",     fmt_num(df_mid_mes["engagedSessions"].sum()))
-        m3.metric("Leads gerados", fmt_num(leads_mid))
-        m4.metric("Downloads",     fmt_num(dl_mid))
+        m2.metric("Leads gerados", fmt_num(leads_mid))
+        m3.metric("Downloads",     fmt_num(dl_mid))
 
         st.plotly_chart(bar_chart_multi(df_mid_mes, "mes", "sessions", "canal",
-            "Sessoes por canal de midia"), use_container_width=True)
+            "Sessoes por canal de midia paga"), use_container_width=True)
 
         df_lm2 = (df_l[df_l["canal_key"].isin(KEYS_MIDIA)]
             .groupby(["yearMonth","mes","canal"], as_index=False)["eventCount"].sum()
             .sort_values("yearMonth"))
         if not df_lm2.empty:
             st.plotly_chart(bar_chart_multi(df_lm2, "mes", "eventCount", "canal",
-                "Leads por canal de midia"), use_container_width=True)
+                "Leads por canal de midia paga"), use_container_width=True)
 
-        df_mc = (
-            df_mid.groupby(["canal","sessionCampaignName"], as_index=False)["sessions"].sum()
-            .query("sessionCampaignName != '(not set)'")
-            .sort_values("sessions", ascending=False).head(20)
-            .rename(columns={"canal":"Canal","sessionCampaignName":"Campanha","sessions":"Sessoes"})
-        )
-        if not df_mc.empty:
-            st.caption("Top campanhas de midia paga e social")
-            st.dataframe(df_mc, use_container_width=True, hide_index=True)
+        df_dl_mid = (df_dl[df_dl["canal_key"].isin(KEYS_MIDIA)]
+            .groupby(["yearMonth","mes","canal"], as_index=False)["eventCount"].sum()
+            .sort_values("yearMonth"))
+        if not df_dl_mid.empty:
+            st.plotly_chart(bar_chart_multi(df_dl_mid, "mes", "eventCount", "canal",
+                "Downloads gratuitos por canal de midia paga"), use_container_width=True)
     else:
         st.info("Sem dados de midia paga/social no periodo.")
 
