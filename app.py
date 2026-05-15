@@ -82,14 +82,6 @@ st.markdown("""
         overflow: hidden;
         border: 1px solid #1e293b !important;
     }
-    [data-testid="stDataFrame"] [role="gridcell"] {
-        text-align: center !important;
-        justify-content: center !important;
-    }
-    [data-testid="stDataFrame"] [role="columnheader"] > div {
-        text-align: center !important;
-        justify-content: center !important;
-    }
     /* ── Captions ─────────────────────────────────────────── */
     div[data-testid="stCaptionContainer"] p {
         font-size: 0.8rem;
@@ -295,6 +287,14 @@ def enrich(df):
 
 def fmt_num(n):
     return f"{int(n):,}".replace(",", ".")
+
+def show_table(df):
+    styled = (
+        df.style
+        .set_properties(**{"text-align": "center"})
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+    )
+    st.dataframe(styled, use_container_width=True, hide_index=True)
 
 def mom_delta(df, value_col, ym_col="yearMonth"):
     """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
@@ -583,13 +583,13 @@ try:
         with tc1:
             st.caption("Leads gerados por artigo / campanha")
             if not t_leads_blog.empty:
-                st.dataframe(t_leads_blog, use_container_width=True, hide_index=True)
+                show_table(t_leads_blog)
             else:
                 st.info("Sem dados.")
         with tc2:
             st.caption("Downloads por artigo / campanha")
             if not t_dl_blog.empty:
-                st.dataframe(t_dl_blog, use_container_width=True, hide_index=True)
+                show_table(t_dl_blog)
             else:
                 st.info("Sem dados.")
     else:
@@ -636,7 +636,7 @@ try:
         t_leads_em = tabela_campanhas("email", df_l, "Nome do E-mail / Campanha")
         st.caption("Leads gerados por campanha de e-mail")
         if not t_leads_em.empty:
-            st.dataframe(t_leads_em, use_container_width=True, hide_index=True)
+            show_table(t_leads_em)
         else:
             st.info("Sem dados.")
     else:
@@ -703,19 +703,19 @@ try:
             with tm1:
                 st.caption(f"Leads por campanha — {label}")
                 if not t_leads.empty:
-                    st.dataframe(t_leads, use_container_width=True, hide_index=True)
+                    show_table(t_leads)
                 else:
                     st.info("Sem dados.")
             with tm2:
                 st.caption(f"Downloads por campanha — {label}")
                 if not t_dl.empty:
-                    st.dataframe(t_dl, use_container_width=True, hide_index=True)
+                    show_table(t_dl)
                 else:
                     st.info("Sem dados.")
         else:
             st.caption(f"Leads por campanha — {label}")
             if not t_leads.empty:
-                st.dataframe(t_leads, use_container_width=True, hide_index=True)
+                show_table(t_leads)
             else:
                 st.info("Sem dados.")
 
