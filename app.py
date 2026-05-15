@@ -374,42 +374,41 @@ try:
     # ═══════════════════════════════════════════════════════════════════════════
     # ANALISTA DE MIDIAS DIGITAIS
     # ═══════════════════════════════════════════════════════════════════════════
-    st.markdown('<div class="sec-header">&#128227; Analista de Midias Digitais &mdash; Pago e Social</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-header">&#128227; Analista de Midias Digitais &mdash; Google Ads e Meta Ads</div>', unsafe_allow_html=True)
 
-    KEYS_MIDIA = ["gads","meta","instagram","linkedin","social"]
-    df_mid     = df_s[df_s["canal_key"].isin(KEYS_MIDIA)]
-    df_mid_mes = df_mid.groupby(["yearMonth","mes","canal"], as_index=False).agg(
-        sessions=("sessions","sum"),
-        engagedSessions=("engagedSessions","sum"),
-    ).sort_values("yearMonth")
-
-    leads_mid = df_l[df_l["canal_key"].isin(KEYS_MIDIA)]["eventCount"].sum()
-    dl_mid    = df_dl[df_dl["canal_key"].isin(KEYS_MIDIA)]["eventCount"].sum()
-
-    if not df_mid_mes.empty:
-        m1,m2,m3 = st.columns(3)
-        m1.metric("Sessoes",       fmt_num(df_mid_mes["sessions"].sum()))
-        m2.metric("Leads gerados", fmt_num(leads_mid))
-        m3.metric("Downloads",     fmt_num(dl_mid))
-
-        st.plotly_chart(bar_chart_multi(df_mid_mes, "mes", "sessions", "canal",
-            "Sessoes por canal de midia paga"), use_container_width=True)
-
-        df_lm2 = (df_l[df_l["canal_key"].isin(KEYS_MIDIA)]
-            .groupby(["yearMonth","mes","canal"], as_index=False)["eventCount"].sum()
+    def graficos_canal(key, label, cor):
+        df_sess = (df_s[df_s["canal_key"] == key]
+            .groupby(["yearMonth","mes"], as_index=False)["sessions"].sum()
             .sort_values("yearMonth"))
-        if not df_lm2.empty:
-            st.plotly_chart(bar_chart_multi(df_lm2, "mes", "eventCount", "canal",
-                "Leads por canal de midia paga"), use_container_width=True)
-
-        df_dl_mid = (df_dl[df_dl["canal_key"].isin(KEYS_MIDIA)]
-            .groupby(["yearMonth","mes","canal"], as_index=False)["eventCount"].sum()
+        df_lead = (df_l[df_l["canal_key"] == key]
+            .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
             .sort_values("yearMonth"))
-        if not df_dl_mid.empty:
-            st.plotly_chart(bar_chart_multi(df_dl_mid, "mes", "eventCount", "canal",
-                "Downloads gratuitos por canal de midia paga"), use_container_width=True)
-    else:
-        st.info("Sem dados de midia paga/social no periodo.")
+        df_down = (df_dl[df_dl["canal_key"] == key]
+            .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
+            .sort_values("yearMonth"))
+
+        total_sess  = df_sess["sessions"].sum() if not df_sess.empty else 0
+        total_leads = df_lead["eventCount"].sum() if not df_lead.empty else 0
+        total_dl    = df_down["eventCount"].sum() if not df_down.empty else 0
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric(f"Sessoes {label}",   fmt_num(total_sess))
+        c2.metric(f"Leads {label}",     fmt_num(total_leads))
+        c3.metric(f"Downloads {label}", fmt_num(total_dl))
+
+        if not df_sess.empty:
+            st.plotly_chart(bar_chart(df_sess, "mes", "sessions",
+                f"Sessoes — {label}", cor), use_container_width=True)
+        if not df_lead.empty:
+            st.plotly_chart(bar_chart(df_lead, "mes", "eventCount",
+                f"Leads gerados — {label}", cor), use_container_width=True)
+        if not df_down.empty:
+            st.plotly_chart(bar_chart(df_down, "mes", "eventCount",
+                f"Downloads gratuitos — {label}", cor), use_container_width=True)
+
+    graficos_canal("gads", "Google Ads", "#3b82f6")
+    st.markdown("---")
+    graficos_canal("meta", "Meta Ads",   "#1877f2")
 
 except Exception as e:
     st.error(f"Erro ao conectar ao GA4: {e}")
