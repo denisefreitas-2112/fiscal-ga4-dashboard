@@ -515,11 +515,12 @@ try:
                 "Downloads gratuitos a partir do Blog (fiscal.io)", COR_BARRA),
                 use_container_width=True)
 
-        st.plotly_chart(funil_canal(
-            ["Sessoes", "Leads", "Downloads"],
-            [int(total_sess_blog), int(leads_blog), int(dl_blog_total)],
-            "Funil de conversao — Blog",
-        ), use_container_width=True)
+        if sess_blog_fiscal > 0:
+            st.plotly_chart(funil_canal(
+                ["Sessoes fiscal.io via Blog", "Leads", "Downloads"],
+                [int(sess_blog_fiscal), int(leads_blog), int(dl_blog_total)],
+                "Funil de conversao — Blog (fiscal.io)",
+            ), use_container_width=True)
 
         t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo", com_midia=True)
         t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo", com_midia=True)
