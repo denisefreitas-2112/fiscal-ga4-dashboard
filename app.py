@@ -523,17 +523,14 @@ try:
         total_sess_blog  = df_blog_host["sessions"].sum()
         sess_blog_fiscal = df_s[df_s["canal_key"] == "blog"]["sessions"].sum()
         ad = df_blog_host["averageSessionDuration"].mean()
-        delta_sess_blog  = mom_delta(df_blog_host, "sessions")
-        delta_leads_blog = mom_delta(df_l[df_l["canal_key"] == "blog"], "eventCount")
-        delta_dl_blog    = mom_delta(df_dl[df_dl["canal_key"] == "blog"], "eventCount")
 
         b1, b2, b3, b4, b5, b6 = st.columns(6)
-        b1.metric("Sessoes no Blog",     fmt_num(total_sess_blog), delta=delta_sess_blog)
-        b2.metric("Leads via Blog",      fmt_num(leads_blog),      delta=delta_leads_blog)
-        b3.metric("Downloads via Blog",  fmt_num(dl_blog_total),   delta=delta_dl_blog)
-        b4.metric("Conv. Lead",          taxa_conv(leads_blog,    sess_blog_fiscal))
-        b5.metric("Conv. Download",      taxa_conv(dl_blog_total, sess_blog_fiscal))
-        b6.metric("Duracao media",       f"{int(ad//60)}m {int(ad%60)}s")
+        b1.metric("Sessoes no Blog",    fmt_num(total_sess_blog))
+        b2.metric("Leads via Blog",     fmt_num(leads_blog))
+        b3.metric("Downloads via Blog", fmt_num(dl_blog_total))
+        b4.metric("Conv. Lead",         taxa_conv(leads_blog,    sess_blog_fiscal))
+        b5.metric("Conv. Download",     taxa_conv(dl_blog_total, sess_blog_fiscal))
+        b6.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
 
         # Sessoes: hostName = conteudo.fiscal.io
         st.plotly_chart(bar_chart(
@@ -605,13 +602,11 @@ try:
     dl_em    = df_dl[df_dl["canal_key"] == "email"]["eventCount"].sum()
 
     if not df_em_mes.empty:
-        total_sess_em  = df_em_mes["sessions"].sum()
-        delta_sess_em  = mom_delta(df_em_mes, "sessions")
-        delta_leads_em = mom_delta(df_l[df_l["canal_key"] == "email"], "eventCount")
+        total_sess_em = df_em_mes["sessions"].sum()
 
         e1, e2, e3 = st.columns(3)
-        e1.metric("Sessoes via E-mail", fmt_num(total_sess_em), delta=delta_sess_em)
-        e2.metric("Leads via E-mail",   fmt_num(leads_em),      delta=delta_leads_em)
+        e1.metric("Sessoes via E-mail", fmt_num(total_sess_em))
+        e2.metric("Leads via E-mail",   fmt_num(leads_em))
         e3.metric("Conv. Lead",         taxa_conv(leads_em, total_sess_em))
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
@@ -659,20 +654,17 @@ try:
         total_leads = df_lead["eventCount"].sum() if not df_lead.empty else 0
         total_dl    = df_down["eventCount"].sum() if not df_down.empty else 0
 
-        delta_sess  = mom_delta(df_sess, "sessions")   if not df_sess.empty  else None
-        delta_leads = mom_delta(df_lead, "eventCount") if not df_lead.empty else None
-
         if com_downloads:
             c1, c2, c3, c4, c5 = st.columns(5)
-            c1.metric(f"Sessoes {label}",    fmt_num(total_sess),   delta=delta_sess)
-            c2.metric(f"Leads {label}",      fmt_num(total_leads),  delta=delta_leads)
-            c3.metric(f"Downloads {label}",  fmt_num(total_dl))
-            c4.metric("Conv. Lead",          taxa_conv(total_leads, total_sess))
-            c5.metric("Conv. Download",      taxa_conv(total_dl,    total_sess))
+            c1.metric(f"Sessoes {label}",   fmt_num(total_sess))
+            c2.metric(f"Leads {label}",     fmt_num(total_leads))
+            c3.metric(f"Downloads {label}", fmt_num(total_dl))
+            c4.metric("Conv. Lead",         taxa_conv(total_leads, total_sess))
+            c5.metric("Conv. Download",     taxa_conv(total_dl,    total_sess))
         else:
             c1, c2, c3 = st.columns(3)
-            c1.metric(f"Sessoes {label}", fmt_num(total_sess),  delta=delta_sess)
-            c2.metric(f"Leads {label}",   fmt_num(total_leads), delta=delta_leads)
+            c1.metric(f"Sessoes {label}", fmt_num(total_sess))
+            c2.metric(f"Leads {label}",   fmt_num(total_leads))
             c3.metric("Conv. Lead",       taxa_conv(total_leads, total_sess))
 
         if not df_sess.empty:
