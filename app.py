@@ -247,41 +247,46 @@ try:
     st.markdown("---")
 
     # ── Visao geral por canal ─────────────────────────────────────────────────
-    st.markdown("#### Sessoes por canal - mes a mes")
+    st.markdown("#### Progresso por canal - mes a mes")
 
     df_geral = df_s.groupby(["yearMonth","mes","canal"], as_index=False).agg(
         sessions=("sessions","sum")
     ).sort_values("yearMonth")
 
-    fig_geral = px.bar(
+    fig_geral = px.line(
         df_geral, x="mes", y="sessions", color="canal",
-        barmode="stack",
         category_orders={"mes": meses_label},
         labels={"mes":"","sessions":"Sessoes","canal":"Canal"},
         color_discrete_map=CORES_CANAL,
+        markers=True,
     )
-    fig_geral.update_layout(**PLOTLY_DARK, legend_title="Canal", showlegend=True)
+    fig_geral.update_traces(line_width=2.5)
+    fig_geral.update_layout(**PLOTLY_DARK, legend_title="Canal", showlegend=True, hovermode="x unified")
     st.plotly_chart(fig_geral, use_container_width=True)
 
     col_ev1, col_ev2 = st.columns(2)
     with col_ev1:
         df_lm = df_l.groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum().sort_values("yearMonth")
-        fig_l2 = px.bar(df_lm, x="mes", y="eventCount",
-            title="Leads gerados (generate_lead)",
+        fig_l2 = px.line(df_lm, x="mes", y="eventCount",
+            title="Leads gerados (generate_lead) - progresso",
             category_orders={"mes": meses_label},
             labels={"mes":"","eventCount":"Leads"},
-            color_discrete_sequence=["#3b82f6"])
-        fig_l2.update_layout(**PLOTLY_DARK)
+            color_discrete_sequence=["#3b82f6"],
+            markers=True)
+        fig_l2.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(59,130,246,0.1)")
+        fig_l2.update_layout(**PLOTLY_DARK, hovermode="x unified")
         st.plotly_chart(fig_l2, use_container_width=True)
 
     with col_ev2:
         df_dm = df_dl.groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum().sort_values("yearMonth")
-        fig_d2 = px.bar(df_dm, x="mes", y="eventCount",
-            title="Downloads gratuitos (lead_form_download)",
+        fig_d2 = px.line(df_dm, x="mes", y="eventCount",
+            title="Downloads gratuitos (lead_form_download) - progresso",
             category_orders={"mes": meses_label},
             labels={"mes":"","eventCount":"Downloads"},
-            color_discrete_sequence=["#10b981"])
-        fig_d2.update_layout(**PLOTLY_DARK)
+            color_discrete_sequence=["#10b981"],
+            markers=True)
+        fig_d2.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(16,185,129,0.1)")
+        fig_d2.update_layout(**PLOTLY_DARK, hovermode="x unified")
         st.plotly_chart(fig_d2, use_container_width=True)
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -362,24 +367,26 @@ try:
 
         col_e1, col_e2 = st.columns(2)
         with col_e1:
-            fig_es = px.bar(df_em_mes, x="mes", y="sessions",
-                title="Sessoes via E-mail",
+            fig_es = px.line(df_em_mes, x="mes", y="sessions",
+                title="Sessoes via E-mail - progresso",
                 category_orders={"mes": meses_label},
                 labels={"mes":"","sessions":"Sessoes"},
-                color_discrete_sequence=["#8b5cf6"])
-            fig_es.update_layout(**PLOTLY_DARK)
+                color_discrete_sequence=["#8b5cf6"], markers=True)
+            fig_es.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(139,92,246,0.1)")
+            fig_es.update_layout(**PLOTLY_DARK, hovermode="x unified")
             st.plotly_chart(fig_es, use_container_width=True)
         with col_e2:
             df_le = (df_l[df_l["canal_key"]=="email"]
                 .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
                 .sort_values("yearMonth"))
             if not df_le.empty:
-                fig_el = px.bar(df_le, x="mes", y="eventCount",
-                    title="Leads via E-mail",
+                fig_el = px.line(df_le, x="mes", y="eventCount",
+                    title="Leads via E-mail - progresso",
                     category_orders={"mes": meses_label},
                     labels={"mes":"","eventCount":"Leads"},
-                    color_discrete_sequence=["#8b5cf6"])
-                fig_el.update_layout(**PLOTLY_DARK)
+                    color_discrete_sequence=["#8b5cf6"], markers=True)
+                fig_el.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(139,92,246,0.1)")
+                fig_el.update_layout(**PLOTLY_DARK, hovermode="x unified")
                 st.plotly_chart(fig_el, use_container_width=True)
 
         df_ec = (
@@ -418,26 +425,26 @@ try:
 
         col_m1, col_m2 = st.columns(2)
         with col_m1:
-            fig_ms = px.bar(df_mid_mes, x="mes", y="sessions", color="canal",
-                barmode="stack",
-                title="Sessoes por canal de midia",
+            fig_ms = px.line(df_mid_mes, x="mes", y="sessions", color="canal",
+                title="Sessoes por canal de midia - progresso",
                 category_orders={"mes": meses_label},
                 labels={"mes":"","sessions":"Sessoes","canal":"Canal"},
-                color_discrete_map=CORES_CANAL)
-            fig_ms.update_layout(**PLOTLY_DARK)
+                color_discrete_map=CORES_CANAL, markers=True)
+            fig_ms.update_traces(line_width=2.5)
+            fig_ms.update_layout(**PLOTLY_DARK, hovermode="x unified")
             st.plotly_chart(fig_ms, use_container_width=True)
         with col_m2:
             df_lm2 = (df_l[df_l["canal_key"].isin(KEYS_MIDIA)]
                 .groupby(["yearMonth","mes","canal"], as_index=False)["eventCount"].sum()
                 .sort_values("yearMonth"))
             if not df_lm2.empty:
-                fig_lm = px.bar(df_lm2, x="mes", y="eventCount", color="canal",
-                    barmode="group",
-                    title="Leads por canal de midia",
+                fig_lm = px.line(df_lm2, x="mes", y="eventCount", color="canal",
+                    title="Leads por canal de midia - progresso",
                     category_orders={"mes": meses_label},
                     labels={"mes":"","eventCount":"Leads","canal":"Canal"},
-                    color_discrete_map=CORES_CANAL)
-                fig_lm.update_layout(**PLOTLY_DARK)
+                    color_discrete_map=CORES_CANAL, markers=True)
+                fig_lm.update_traces(line_width=2.5)
+                fig_lm.update_layout(**PLOTLY_DARK, hovermode="x unified")
                 st.plotly_chart(fig_lm, use_container_width=True)
 
         df_mc = (
