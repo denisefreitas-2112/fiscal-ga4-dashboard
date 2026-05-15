@@ -366,7 +366,7 @@ try:
             showlegend=False,
             title=dict(
                 text=title,
-                font=dict(size=11, color="#64748b"),
+                font=dict(size=13, color="#cbd5e1"),
                 x=0.015,
                 xanchor="left",
                 y=0.97,
