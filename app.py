@@ -159,21 +159,51 @@ def run_sessions(client, start, end):
     return _parse_resp(resp)
 
 
+def _str_filter(field, value):
+    return ga4_types.FilterExpression(
+        filter=ga4_types.Filter(
+            field_name=field,
+            string_filter=ga4_types.Filter.StringFilter(
+                value=value,
+                match_type=ga4_types.Filter.StringFilter.MatchType.EXACT,
+            ),
+        )
+    )
+
+
+def _and_filter(*exprs):
+    return ga4_types.FilterExpression(
+        and_group=ga4_types.FilterExpressionList(expressions=list(exprs))
+    )
+
+
+def run_sessions_blog(client, start, end):
+    """Sessoes no blog: filtra por hostName = conteudo.fiscal.io."""
+    resp = client.run_report(ga4_types.RunReportRequest(
+        property=f"properties/{PROPERTY_ID}",
+        dimensions=[
+            ga4_types.Dimension(name="yearMonth"),
+        ],
+        metrics=[
+            ga4_types.Metric(name="sessions"),
+            ga4_types.Metric(name="engagedSessions"),
+            ga4_types.Metric(name="averageSessionDuration"),
+            ga4_types.Metric(name="engagementRate"),
+        ],
+        date_ranges=[ga4_types.DateRange(start_date=start, end_date=end)],
+        dimension_filter=_str_filter("hostName", "conteudo.fiscal.io"),
+        limit=10000,
+    ))
+    return _parse_resp(resp)
+
+
 def run_event(client, event_name, start, end):
     resp = client.run_report(ga4_types.RunReportRequest(
         property=f"properties/{PROPERTY_ID}",
         dimensions=[ga4_types.Dimension(name=d) for d in DIMS_BASE],
         metrics=[ga4_types.Metric(name="eventCount")],
         date_ranges=[ga4_types.DateRange(start_date=start, end_date=end)],
-        dimension_filter=ga4_types.FilterExpression(
-            filter=ga4_types.Filter(
-                field_name="eventName",
-                string_filter=ga4_types.Filter.StringFilter(
-                    value=event_name,
-                    match_type=ga4_types.Filter.StringFilter.MatchType.EXACT,
-                ),
-            )
-        ),
+        dimension_filter=_str_filter("eventName", event_name),
         limit=10000,
     ))
     return _parse_resp(resp)
@@ -213,9 +243,11 @@ try:
     client = get_client()
 
     with st.spinner("Carregando dados..."):
-        df_s  = enrich(run_sessions(client, start_date, end_date))
-        df_l  = enrich(run_event(client, "generate_lead",      start_date, end_date))
-        df_dl = enrich(run_event(client, "lead_form_download", start_date, end_date))
+        df_s    = enrich(run_sessions(client, start_date, end_date))
+        df_l    = enrich(run_event(client, "generate_lead",      start_date, end_date))
+        df_dl   = enrich(run_event(client, "lead_form_download", start_date, end_date))
+        # Blog: sessoes por hostName (conteudo.fiscal.io)
+        df_blog_host = run_sessions_blog(client, start_date, end_date)
 
     # cast numericos
     df_s["sessions"]               = df_s["sessions"].astype(int)
@@ -224,6 +256,14 @@ try:
     df_s["engagementRate"]         = df_s["engagementRate"].astype(float)
     df_l["eventCount"]             = df_l["eventCount"].astype(int)
     df_dl["eventCount"]            = df_dl["eventCount"].astype(int)
+
+    if not df_blog_host.empty:
+        df_blog_host["sessions"]               = df_blog_host["sessions"].astype(int)
+        df_blog_host["engagedSessions"]        = df_blog_host["engagedSessions"].astype(int)
+        df_blog_host["averageSessionDuration"] = df_blog_host["averageSessionDuration"].astype(float)
+        df_blog_host["mes"] = df_blog_host["yearMonth"].apply(
+            lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}"
+        )
 
     ordem_mes   = sorted(df_s["yearMonth"].unique())
     meses_label = [f"{MESES[int(m[4:])-1]}/{m[2:4]}" for m in ordem_mes]
@@ -259,28 +299,24 @@ try:
     # ═══════════════════════════════════════════════════════════════════════════
     st.markdown('<div class="sec-header">&#9999;&#65039; Analista de Conteudo &mdash; Blog</div>', unsafe_allow_html=True)
 
-    df_blog     = df_s[df_s["canal_key"] == "blog"]
-    df_blog_mes = df_blog.groupby(["yearMonth","mes"], as_index=False).agg(
-        sessions=("sessions","sum"),
-        engagedSessions=("engagedSessions","sum"),
-        avgDur=("averageSessionDuration","mean"),
-        engRate=("engagementRate","mean"),
-    ).sort_values("yearMonth")
-
-    leads_blog = df_l[df_l["canal_key"] == "blog"]["eventCount"].sum()
+    leads_blog    = df_l[df_l["canal_key"] == "blog"]["eventCount"].sum()
     dl_blog_total = df_dl[df_dl["canal_key"] == "blog"]["eventCount"].sum()
 
-    if not df_blog_mes.empty:
+    if not df_blog_host.empty:
         b1,b2,b3,b4 = st.columns(4)
-        b1.metric("Sessoes",         fmt_num(df_blog_mes["sessions"].sum()))
-        b2.metric("Leads via Blog",  fmt_num(leads_blog))
+        b1.metric("Sessoes no Blog",    fmt_num(df_blog_host["sessions"].sum()))
+        b2.metric("Leads via Blog",     fmt_num(leads_blog))
         b3.metric("Downloads via Blog", fmt_num(dl_blog_total))
-        ad = df_blog_mes["avgDur"].mean()
-        b4.metric("Duracao media",   f"{int(ad//60)}m {int(ad%60)}s")
+        ad = df_blog_host["averageSessionDuration"].mean()
+        b4.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
 
-        st.plotly_chart(bar_chart(df_blog_mes, "mes", "sessions",
-            "Sessoes via Blog", "#10b981"), use_container_width=True)
+        # Sessoes: hostName = conteudo.fiscal.io
+        st.plotly_chart(bar_chart(
+            df_blog_host.sort_values("yearMonth"), "mes", "sessions",
+            "Sessoes no Blog (conteudo.fiscal.io)", "#10b981"),
+            use_container_width=True)
 
+        # Leads: fiscal.io com source=blog
         df_l_blog_mes = (
             df_l[df_l["canal_key"] == "blog"]
             .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
@@ -288,8 +324,10 @@ try:
         )
         if not df_l_blog_mes.empty:
             st.plotly_chart(bar_chart(df_l_blog_mes, "mes", "eventCount",
-                "Leads gerados via Blog", "#34d399"), use_container_width=True)
+                "Leads gerados a partir do Blog (fiscal.io)", "#34d399"),
+                use_container_width=True)
 
+        # Downloads: fiscal.io com source=blog
         df_dl_blog_mes = (
             df_dl[df_dl["canal_key"] == "blog"]
             .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
@@ -297,7 +335,8 @@ try:
         )
         if not df_dl_blog_mes.empty:
             st.plotly_chart(bar_chart(df_dl_blog_mes, "mes", "eventCount",
-                "Downloads gratuitos via Blog", "#059669"), use_container_width=True)
+                "Downloads gratuitos a partir do Blog (fiscal.io)", "#059669"),
+                use_container_width=True)
     else:
         st.info("Sem dados de Blog no periodo.")
 
