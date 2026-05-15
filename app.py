@@ -16,59 +16,81 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* Cards de KPI */
+    /* ── Sidebar ───────────────────────────────────────────── */
+    section[data-testid="stSidebar"] {
+        background: #080c14 !important;
+        border-right: 1px solid #1e293b !important;
+    }
+    /* ── Metric Cards ─────────────────────────────────────── */
     div[data-testid="metric-container"] {
-        background: #161b27;
-        border: 1px solid #1e3a5f;
-        border-radius: 10px;
-        padding: 1rem 1.2rem 0.8rem 1.2rem;
+        background: #111827;
+        border: 1px solid #1e293b;
+        border-radius: 12px;
+        padding: 1.1rem 1.4rem 1rem 1.4rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
     div[data-testid="stMetricValue"] > div {
-        font-size: 1.9rem !important;
+        font-size: 2.1rem !important;
         font-weight: 700 !important;
-        color: #f1f5f9 !important;
+        color: #f8fafc !important;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
     }
     div[data-testid="stMetricLabel"] > div {
-        font-size: 0.72rem !important;
+        font-size: 0.68rem !important;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.09em;
         color: #64748b !important;
+        font-weight: 500;
+        margin-top: 0.2rem;
     }
-    /* Cabecalho principal de secao */
+    /* ── Chart Cards ──────────────────────────────────────── */
+    div[data-testid="stPlotlyChart"] > div {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #1e293b;
+    }
+    /* ── Section Headers ──────────────────────────────────── */
     .sec-header {
-        background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
-        color: white;
-        padding: 0.7rem 1.4rem;
+        background: linear-gradient(135deg, #1a56db 0%, #1044b0 100%);
+        color: #f8fafc;
+        padding: 0.65rem 1.2rem;
         border-radius: 10px;
-        margin: 2.2rem 0 1rem 0;
-        font-size: 0.9rem;
+        margin: 2.6rem 0 1.4rem 0;
+        font-size: 0.78rem;
         font-weight: 700;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
+        box-shadow: 0 2px 12px rgba(26,86,219,0.3);
     }
-    /* Sub-cabecalho de canal (Google / Meta) */
+    /* ── Sub-headers (Google / Meta) ──────────────────────── */
     .sub-header {
-        border-left: 4px solid #3b82f6;
-        padding: 0.35rem 0.9rem;
-        margin: 1.6rem 0 0.6rem 0;
-        font-size: 0.88rem;
-        font-weight: 600;
-        color: #cbd5e1;
-        letter-spacing: 0.02em;
+        border-left: 3px solid #3b82f6;
+        padding: 0.28rem 0.85rem;
+        margin: 1.8rem 0 0.9rem 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #94a3b8;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
     }
     .sub-header-meta { border-left-color: #1877f2; }
-    /* Tabelas */
-    div[data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; }
-    /* Caption */
-    div[data-testid="stCaptionContainer"] p {
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #475569;
-        margin-bottom: 0.3rem;
+    /* ── Tables ───────────────────────────────────────────── */
+    div[data-testid="stDataFrame"] {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #1e293b !important;
     }
-    /* Divider */
-    hr { border-color: #1e293b !important; margin: 1.5rem 0; }
+    /* ── Captions ─────────────────────────────────────────── */
+    div[data-testid="stCaptionContainer"] p {
+        font-size: 0.67rem;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: #475569;
+        margin-bottom: 0.4rem;
+    }
+    /* ── Divider ──────────────────────────────────────────── */
+    hr { border-color: #1e293b !important; margin: 2rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,8 +123,8 @@ CANAIS_MIDIA = ["Google Ads", "Meta Ads", "Instagram", "LinkedIn", "Social"]
 
 PLOTLY_DARK = dict(
     template="plotly_dark",
-    plot_bgcolor="rgba(22,27,39,0.5)",
-    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="#111827",
     font_color="#e2e8f0",
     font_family="sans-serif",
 )
@@ -276,11 +298,13 @@ st.sidebar.caption("Property 307883096")
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown(
-    f"<h2 style='margin-bottom:0;color:#f1f5f9;font-weight:700;'>"
-    f"Painel de Desempenho de Marketing</h2>"
-    f"<p style='color:#64748b;font-size:0.85rem;margin-top:0.2rem;'>"
-    f"Fiscal.IO &nbsp;·&nbsp; {ano} &nbsp;·&nbsp; Blog &nbsp;|&nbsp; "
-    f"E-mail &nbsp;|&nbsp; Google Ads &nbsp;|&nbsp; Meta Ads</p>",
+    f"<h1 style='margin:0 0 0.15rem 0;color:#f8fafc;font-weight:700;"
+    f"font-size:1.7rem;letter-spacing:-0.02em;'>"
+    f"Desempenho de Marketing</h1>"
+    f"<p style='color:#64748b;font-size:0.82rem;margin:0 0 0.5rem 0;"
+    f"letter-spacing:0.03em;'>"
+    f"Fiscal.IO &nbsp;&nbsp;·&nbsp;&nbsp; {ano} &nbsp;&nbsp;·&nbsp;&nbsp; "
+    f"Blog &nbsp;|&nbsp; E-mail &nbsp;|&nbsp; Google Ads &nbsp;|&nbsp; Meta Ads</p>",
     unsafe_allow_html=True,
 )
 st.markdown("---")
@@ -327,16 +351,29 @@ try:
             textfont=dict(size=11, color="#94a3b8"),
             cliponaxis=False,
             marker_line_width=0,
+            opacity=0.9,
         )
         fig.update_layout(
             **PLOTLY_DARK,
             showlegend=False,
-            title=dict(text=title, font=dict(size=12, color="#64748b"), x=0, xanchor="left"),
-            height=270,
-            bargap=0.35,
-            margin=dict(t=42, b=8, l=8, r=8),
+            title=dict(
+                text=title,
+                font=dict(size=11, color="#64748b"),
+                x=0.015,
+                xanchor="left",
+                y=0.97,
+                yanchor="top",
+            ),
+            height=265,
+            bargap=0.38,
+            margin=dict(t=44, b=14, l=14, r=14),
             yaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
-            xaxis=dict(showgrid=False, tickfont=dict(size=11, color="#94a3b8")),
+            xaxis=dict(
+                showgrid=False,
+                tickfont=dict(size=11, color="#64748b"),
+                tickangle=0,
+                linecolor="#1e293b",
+            ),
         )
         return fig
 
