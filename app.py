@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
@@ -287,6 +288,43 @@ def enrich(df):
 def fmt_num(n):
     return f"{int(n):,}".replace(",", ".")
 
+def mom_delta(df, value_col, ym_col="yearMonth"):
+    """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
+    if df.empty or ym_col not in df.columns:
+        return None
+    monthly = df.groupby(ym_col)[value_col].sum()
+    months = sorted(monthly.index)
+    if len(months) < 2:
+        return None
+    curr, prev = monthly[months[-1]], monthly[months[-2]]
+    if prev == 0:
+        return None
+    pct = (curr - prev) / prev * 100
+    return f"{'+' if pct >= 0 else ''}{pct:.1f}%"
+
+def taxa_conv(leads, sessions):
+    if sessions == 0:
+        return "—"
+    return f"{leads / sessions * 100:.1f}%"
+
+def funil_canal(stages, values, title=""):
+    colors = ["#1a56db", "#2563eb", "#3b82f6"][:len(stages)]
+    fig = go.Figure(go.Funnel(
+        y=stages,
+        x=values,
+        textinfo="value+percent initial",
+        textfont=dict(size=12, color="#f8fafc"),
+        marker=dict(color=colors, line=dict(width=0)),
+        connector=dict(line=dict(color="#1e293b", width=1)),
+    ))
+    fig.update_layout(
+        **PLOTLY_DARK,
+        title=dict(text=title, font=dict(size=13, color="#cbd5e1"), x=0.015, xanchor="left"),
+        height=220,
+        margin=dict(t=44, b=14, l=110, r=14),
+    )
+    return fig
+
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 st.sidebar.markdown(
@@ -435,12 +473,18 @@ try:
     dl_blog_total = df_dl[df_dl["canal_key"] == "blog"]["eventCount"].sum()
 
     if not df_blog_host.empty:
-        b1,b2,b3,b4 = st.columns(4)
-        b1.metric("Sessoes no Blog",    fmt_num(df_blog_host["sessions"].sum()))
-        b2.metric("Leads via Blog",     fmt_num(leads_blog))
-        b3.metric("Downloads via Blog", fmt_num(dl_blog_total))
+        total_sess_blog = df_blog_host["sessions"].sum()
         ad = df_blog_host["averageSessionDuration"].mean()
-        b4.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
+        delta_sess_blog  = mom_delta(df_blog_host, "sessions")
+        delta_leads_blog = mom_delta(df_l[df_l["canal_key"] == "blog"], "eventCount")
+        delta_dl_blog    = mom_delta(df_dl[df_dl["canal_key"] == "blog"], "eventCount")
+
+        b1, b2, b3, b4, b5 = st.columns(5)
+        b1.metric("Sessoes no Blog",    fmt_num(total_sess_blog), delta=delta_sess_blog)
+        b2.metric("Leads via Blog",     fmt_num(leads_blog),      delta=delta_leads_blog)
+        b3.metric("Downloads via Blog", fmt_num(dl_blog_total),   delta=delta_dl_blog)
+        b4.metric("Taxa Conv. Lead",    taxa_conv(leads_blog, total_sess_blog))
+        b5.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
 
         # Sessoes: hostName = conteudo.fiscal.io
         st.plotly_chart(bar_chart(
@@ -469,6 +513,12 @@ try:
             st.plotly_chart(bar_chart(df_dl_blog_mes, "mes", "eventCount",
                 "Downloads gratuitos a partir do Blog (fiscal.io)", COR_BARRA),
                 use_container_width=True)
+
+        st.plotly_chart(funil_canal(
+            ["Sessoes", "Leads", "Downloads"],
+            [int(total_sess_blog), int(leads_blog), int(dl_blog_total)],
+            "Funil de conversao — Blog",
+        ), use_container_width=True)
 
         t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo", com_midia=True)
         t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo", com_midia=True)
@@ -503,9 +553,14 @@ try:
     dl_em    = df_dl[df_dl["canal_key"] == "email"]["eventCount"].sum()
 
     if not df_em_mes.empty:
-        e1,e2 = st.columns(2)
-        e1.metric("Sessoes via E-mail", fmt_num(df_em_mes["sessions"].sum()))
-        e2.metric("Leads via E-mail",   fmt_num(leads_em))
+        total_sess_em  = df_em_mes["sessions"].sum()
+        delta_sess_em  = mom_delta(df_em_mes, "sessions")
+        delta_leads_em = mom_delta(df_l[df_l["canal_key"] == "email"], "eventCount")
+
+        e1, e2, e3 = st.columns(3)
+        e1.metric("Sessoes via E-mail", fmt_num(total_sess_em), delta=delta_sess_em)
+        e2.metric("Leads via E-mail",   fmt_num(leads_em),      delta=delta_leads_em)
+        e3.metric("Taxa Conv. Lead",    taxa_conv(leads_em, total_sess_em))
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
             "Sessoes via E-mail", COR_BARRA), use_container_width=True)
@@ -516,6 +571,12 @@ try:
         if not df_le.empty:
             st.plotly_chart(bar_chart(df_le, "mes", "eventCount",
                 "Leads gerados via E-mail", COR_BARRA), use_container_width=True)
+
+        st.plotly_chart(funil_canal(
+            ["Sessoes", "Leads"],
+            [int(total_sess_em), int(leads_em)],
+            "Funil de conversao — E-mail",
+        ), use_container_width=True)
 
         t_leads_em = tabela_campanhas("email", df_l,  "Nome do E-mail / Campanha")
         t_dl_em    = tabela_campanhas("email", df_dl, "Nome do E-mail / Campanha")
@@ -555,15 +616,20 @@ try:
         total_leads = df_lead["eventCount"].sum() if not df_lead.empty else 0
         total_dl    = df_down["eventCount"].sum() if not df_down.empty else 0
 
+        delta_sess  = mom_delta(df_sess, "sessions")   if not df_sess.empty  else None
+        delta_leads = mom_delta(df_lead, "eventCount") if not df_lead.empty else None
+
         if com_downloads:
-            c1, c2, c3 = st.columns(3)
-            c1.metric(f"Sessoes {label}",   fmt_num(total_sess))
-            c2.metric(f"Leads {label}",     fmt_num(total_leads))
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric(f"Sessoes {label}",   fmt_num(total_sess),   delta=delta_sess)
+            c2.metric(f"Leads {label}",     fmt_num(total_leads),  delta=delta_leads)
             c3.metric(f"Downloads {label}", fmt_num(total_dl))
+            c4.metric("Taxa Conv. Lead",    taxa_conv(total_leads, total_sess))
         else:
-            c1, c2 = st.columns(2)
-            c1.metric(f"Sessoes {label}", fmt_num(total_sess))
-            c2.metric(f"Leads {label}",   fmt_num(total_leads))
+            c1, c2, c3 = st.columns(3)
+            c1.metric(f"Sessoes {label}", fmt_num(total_sess),  delta=delta_sess)
+            c2.metric(f"Leads {label}",   fmt_num(total_leads), delta=delta_leads)
+            c3.metric("Taxa Conv. Lead",  taxa_conv(total_leads, total_sess))
 
         if not df_sess.empty:
             st.plotly_chart(bar_chart(df_sess, "mes", "sessions",
@@ -574,6 +640,13 @@ try:
         if com_downloads and not df_down.empty:
             st.plotly_chart(bar_chart(df_down, "mes", "eventCount",
                 f"Downloads gratuitos — {label}", cor), use_container_width=True)
+
+        if total_sess > 0:
+            stages = ["Sessoes", "Leads", "Downloads"] if com_downloads else ["Sessoes", "Leads"]
+            values = ([int(total_sess), int(total_leads), int(total_dl)] if com_downloads
+                      else [int(total_sess), int(total_leads)])
+            st.plotly_chart(funil_canal(stages, values, f"Funil de conversao — {label}"),
+                use_container_width=True)
 
         # Tabelas de campanha
         t_leads = tabela_campanhas(key, df_l,  "Campanha")
