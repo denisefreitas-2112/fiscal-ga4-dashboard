@@ -397,16 +397,25 @@ try:
             yaxis=dict(showgrid=True, gridcolor="#2d3748"))
         return fig
 
-    def tabela_campanhas(canal_key, df_evento, col_nome, top=20):
-        """Retorna tabela: nome da campanha x total de eventos para o canal."""
+    def tabela_campanhas(canal_key, df_evento, col_nome, top=20, com_midia=False):
+        """Retorna tabela: nome da campanha x total de eventos para o canal.
+        com_midia=True adiciona coluna Midia (sessionMedium) para diferenciar artigo/banner."""
+        group_cols = ["sessionCampaignName"]
+        if com_midia:
+            group_cols.append("sessionMedium")
         df = (
             df_evento[df_evento["canal_key"] == canal_key]
-            .groupby("sessionCampaignName", as_index=False)["eventCount"].sum()
+            .groupby(group_cols, as_index=False)["eventCount"].sum()
             .query("sessionCampaignName != '(not set)' and sessionCampaignName != ''")
             .sort_values("eventCount", ascending=False)
             .head(top)
-            .rename(columns={"sessionCampaignName": col_nome, "eventCount": "Total"})
         )
+        rename_map = {"sessionCampaignName": col_nome, "eventCount": "Total"}
+        if com_midia:
+            rename_map["sessionMedium"] = "Midia"
+        df = df.rename(columns=rename_map)
+        if com_midia:
+            df = df[[col_nome, "Midia", "Total"]]
         return df
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -453,8 +462,8 @@ try:
                 "Downloads gratuitos a partir do Blog (fiscal.io)", "#059669"),
                 use_container_width=True)
 
-        t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo / Campanha")
-        t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo / Campanha")
+        t_leads_blog = tabela_campanhas("blog", df_l,  "Campanha", com_midia=True)
+        t_dl_blog    = tabela_campanhas("blog", df_dl, "Campanha", com_midia=True)
         tc1, tc2 = st.columns(2)
         with tc1:
             st.caption("Leads gerados por artigo / campanha")
