@@ -313,14 +313,15 @@ try:
         b4.metric("Duracao media",   f"{int(ad//60)}m {int(ad%60)}s")
         b5.metric("Leads via Blog",  fmt_num(leads_blog))
 
-        col_b1, col_b2 = st.columns(2)
+        col_b1, col_b2, col_b3 = st.columns(3)
         with col_b1:
             fig_bs = px.line(df_blog_mes, x="mes", y="sessions",
                 title="Sessoes via Blog",
                 category_orders={"mes": meses_label},
                 labels={"mes":"","sessions":"Sessoes"},
                 color_discrete_sequence=["#10b981"], markers=True)
-            fig_bs.update_layout(**PLOTLY_DARK)
+            fig_bs.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(16,185,129,0.1)")
+            fig_bs.update_layout(**PLOTLY_DARK, hovermode="x unified")
             st.plotly_chart(fig_bs, use_container_width=True)
         with col_b2:
             fig_be = px.line(df_blog_mes, x="mes", y="engRate",
@@ -328,9 +329,27 @@ try:
                 category_orders={"mes": meses_label},
                 labels={"mes":"","engRate":"Taxa"},
                 color_discrete_sequence=["#10b981"], markers=True)
+            fig_be.update_traces(line_width=2.5)
             fig_be.update_yaxes(tickformat=".0%")
-            fig_be.update_layout(**PLOTLY_DARK)
+            fig_be.update_layout(**PLOTLY_DARK, hovermode="x unified")
             st.plotly_chart(fig_be, use_container_width=True)
+        with col_b3:
+            df_dl_blog_mes = (
+                df_dl[df_dl["canal_key"] == "blog"]
+                .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
+                .sort_values("yearMonth")
+            )
+            if not df_dl_blog_mes.empty:
+                fig_dl_blog = px.line(df_dl_blog_mes, x="mes", y="eventCount",
+                    title="Downloads gratuitos via Blog",
+                    category_orders={"mes": meses_label},
+                    labels={"mes":"","eventCount":"Downloads"},
+                    color_discrete_sequence=["#34d399"], markers=True)
+                fig_dl_blog.update_traces(line_width=2.5, fill="tozeroy", fillcolor="rgba(52,211,153,0.1)")
+                fig_dl_blog.update_layout(**PLOTLY_DARK, hovermode="x unified")
+                st.plotly_chart(fig_dl_blog, use_container_width=True)
+            else:
+                st.info("Sem downloads via Blog no periodo.")
 
         df_bc = (
             df_blog.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
