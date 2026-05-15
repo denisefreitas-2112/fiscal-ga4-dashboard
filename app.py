@@ -14,24 +14,61 @@ st.set_page_config(
     layout="wide",
 )
 
-# ── Estilos customizados (complementam o config.toml dark) ───────────────────
 st.markdown("""
 <style>
+    /* Cards de KPI */
     div[data-testid="metric-container"] {
+        background: #161b27;
         border: 1px solid #1e3a5f;
-        border-left: 4px solid #1a56db;
-        border-radius: 8px;
-        padding: 0.8rem 1rem;
+        border-radius: 10px;
+        padding: 1rem 1.2rem 0.8rem 1.2rem;
     }
+    div[data-testid="stMetricValue"] > div {
+        font-size: 1.9rem !important;
+        font-weight: 700 !important;
+        color: #f1f5f9 !important;
+    }
+    div[data-testid="stMetricLabel"] > div {
+        font-size: 0.72rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #64748b !important;
+    }
+    /* Cabecalho principal de secao */
     .sec-header {
-        background: linear-gradient(90deg, #1a56db 0%, #1e3a8a 100%);
+        background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
         color: white;
-        padding: 0.6rem 1.2rem;
-        border-radius: 8px;
-        margin: 1.8rem 0 0.8rem 0;
-        font-size: 0.95rem;
-        font-weight: 600;
+        padding: 0.7rem 1.4rem;
+        border-radius: 10px;
+        margin: 2.2rem 0 1rem 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
     }
+    /* Sub-cabecalho de canal (Google / Meta) */
+    .sub-header {
+        border-left: 4px solid #3b82f6;
+        padding: 0.35rem 0.9rem;
+        margin: 1.6rem 0 0.6rem 0;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #cbd5e1;
+        letter-spacing: 0.02em;
+    }
+    .sub-header-meta { border-left-color: #1877f2; }
+    /* Tabelas */
+    div[data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; }
+    /* Caption */
+    div[data-testid="stCaptionContainer"] p {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #475569;
+        margin-bottom: 0.3rem;
+    }
+    /* Divider */
+    hr { border-color: #1e293b !important; margin: 1.5rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -64,9 +101,10 @@ CANAIS_MIDIA = ["Google Ads", "Meta Ads", "Instagram", "LinkedIn", "Social"]
 
 PLOTLY_DARK = dict(
     template="plotly_dark",
-    plot_bgcolor="#1a2035",
-    paper_bgcolor="#1a2035",
+    plot_bgcolor="rgba(22,27,39,0.5)",
+    paper_bgcolor="rgba(0,0,0,0)",
     font_color="#e2e8f0",
+    font_family="sans-serif",
 )
 
 
@@ -226,17 +264,25 @@ def fmt_num(n):
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
-st.sidebar.image("https://fiscal.io/assets/img/logo-fiscal-io.svg", width=150)
+st.sidebar.image("https://fiscal.io/assets/img/logo-fiscal-io.svg", width=140)
 st.sidebar.markdown("---")
-ano = st.sidebar.selectbox("Ano", [2026, 2025], index=0)
+st.sidebar.markdown("**Ano de referencia**")
+ano = st.sidebar.selectbox("", [2026, 2025], index=0, label_visibility="collapsed")
 start_date = f"{ano}-01-01"
 end_date   = date.today().strftime("%Y-%m-%d")
 st.sidebar.markdown("---")
-st.sidebar.caption("GA4 - Property 307883096")
-st.sidebar.caption("Solicitado por Lucas Farley")
+st.sidebar.caption("Google Analytics 4")
+st.sidebar.caption("Property 307883096")
 
 # ── Header ────────────────────────────────────────────────────────────────────
-st.markdown(f"### \U0001f4ca GA4 - Painel de Desempenho de Marketing | Fiscal.IO | {ano}")
+st.markdown(
+    f"<h2 style='margin-bottom:0;color:#f1f5f9;font-weight:700;'>"
+    f"Painel de Desempenho de Marketing</h2>"
+    f"<p style='color:#64748b;font-size:0.85rem;margin-top:0.2rem;'>"
+    f"Fiscal.IO &nbsp;·&nbsp; {ano} &nbsp;·&nbsp; Blog &nbsp;|&nbsp; "
+    f"E-mail &nbsp;|&nbsp; Google Ads &nbsp;|&nbsp; Meta Ads</p>",
+    unsafe_allow_html=True,
+)
 st.markdown("---")
 
 try:
@@ -270,15 +316,28 @@ try:
 
     def bar_chart(df, x, y, title, color, text_col=None):
         tc = text_col or y
-        fig = px.bar(df, x=x, y=y, title=title,
+        text_vals = df[tc].apply(fmt_num)
+        fig = px.bar(df, x=x, y=y,
             category_orders={x: meses_label},
-            labels={x:"", y:""},
+            labels={x: "", y: ""},
             color_discrete_sequence=[color],
-            text=tc)
-        fig.update_traces(textposition="outside", textfont_size=12, cliponaxis=False)
-        fig.update_layout(**PLOTLY_DARK, showlegend=False,
-            margin=dict(t=50, b=20, l=20, r=20),
-            yaxis=dict(showgrid=True, gridcolor="#2d3748"))
+            text=text_vals)
+        fig.update_traces(
+            textposition="outside",
+            textfont=dict(size=11, color="#94a3b8"),
+            cliponaxis=False,
+            marker_line_width=0,
+        )
+        fig.update_layout(
+            **PLOTLY_DARK,
+            showlegend=False,
+            title=dict(text=title, font=dict(size=12, color="#64748b"), x=0, xanchor="left"),
+            height=270,
+            bargap=0.35,
+            margin=dict(t=42, b=8, l=8, r=8),
+            yaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+            xaxis=dict(showgrid=False, tickfont=dict(size=11, color="#94a3b8")),
+        )
         return fig
 
     def bar_chart_multi(df, x, y, color_col, title):
@@ -480,8 +539,10 @@ try:
             else:
                 st.info("Sem dados.")
 
+    st.markdown('<div class="sub-header">Google Ads</div>', unsafe_allow_html=True)
     graficos_canal("gads", "Google Ads", "#3b82f6", com_downloads=True)
     st.markdown("---")
+    st.markdown('<div class="sub-header sub-header-meta">Meta Ads</div>', unsafe_allow_html=True)
     graficos_canal("meta", "Meta Ads",   "#1877f2", com_downloads=False)
 
 except Exception as e:
