@@ -83,11 +83,12 @@ st.markdown("""
     }
     /* ── Captions ─────────────────────────────────────────── */
     div[data-testid="stCaptionContainer"] p {
-        font-size: 0.67rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 0.09em;
-        color: #475569;
-        margin-bottom: 0.4rem;
+        letter-spacing: 0.06em;
+        color: #94a3b8;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
     }
     /* ── Divider ──────────────────────────────────────────── */
     hr { border-color: #1e293b !important; margin: 2rem 0; }
@@ -416,6 +417,11 @@ try:
         df = df.rename(columns=rename_map)
         if com_midia:
             df = df[[col_nome, "Midia", "Total"]]
+        if not df.empty:
+            total_row = {col: "" for col in df.columns}
+            total_row[col_nome] = "TOTAL"
+            total_row["Total"] = df["Total"].sum()
+            df = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
         return df
 
     # ═══════════════════════════════════════════════════════════════════════════
