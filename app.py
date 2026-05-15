@@ -82,6 +82,14 @@ st.markdown("""
         overflow: hidden;
         border: 1px solid #1e293b !important;
     }
+    [data-testid="stDataFrame"] [role="gridcell"] {
+        text-align: center !important;
+        justify-content: center !important;
+    }
+    [data-testid="stDataFrame"] [role="columnheader"] > div {
+        text-align: center !important;
+        justify-content: center !important;
+    }
     /* ── Captions ─────────────────────────────────────────── */
     div[data-testid="stCaptionContainer"] p {
         font-size: 0.8rem;
