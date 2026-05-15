@@ -307,6 +307,53 @@ def taxa_conv(leads, sessions):
         return "—"
     return f"{leads / sessions * 100:.1f}%"
 
+def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
+    """Linha mensal de taxa de conversao (%). Recebe DFs brutos filtrados por canal."""
+    sess_m = df_sess_raw.groupby("yearMonth")["sessions"].sum().reset_index()
+    lead_m = df_lead_raw.groupby("yearMonth")["eventCount"].sum().reset_index().rename(columns={"eventCount": "leads"})
+    merged = sess_m.merge(lead_m, on="yearMonth", how="left").fillna(0)
+    if df_down_raw is not None and not df_down_raw.empty:
+        down_m = df_down_raw.groupby("yearMonth")["eventCount"].sum().reset_index().rename(columns={"eventCount": "downloads"})
+        merged = merged.merge(down_m, on="yearMonth", how="left").fillna(0)
+    merged["mes"] = merged["yearMonth"].apply(lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}")
+    merged = merged.sort_values("yearMonth")
+    merged["conv_lead"] = merged.apply(
+        lambda r: round(r["leads"] / r["sessions"] * 100, 1) if r["sessions"] > 0 else None, axis=1)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=merged["mes"], y=merged["conv_lead"], name="Conv. Lead",
+        mode="lines+markers+text",
+        line=dict(color=COR_BARRA, width=2),
+        marker=dict(size=7),
+        text=merged["conv_lead"].apply(lambda v: f"{v:.1f}%" if v is not None else ""),
+        textposition="top center",
+        textfont=dict(size=10, color="#94a3b8"),
+    ))
+    if "downloads" in merged.columns:
+        merged["conv_dl"] = merged.apply(
+            lambda r: round(r["downloads"] / r["sessions"] * 100, 1) if r["sessions"] > 0 else None, axis=1)
+        fig.add_trace(go.Scatter(
+            x=merged["mes"], y=merged["conv_dl"], name="Conv. Download",
+            mode="lines+markers+text",
+            line=dict(color="#60a5fa", width=2, dash="dot"),
+            marker=dict(size=7),
+            text=merged["conv_dl"].apply(lambda v: f"{v:.1f}%" if v is not None else ""),
+            textposition="bottom center",
+            textfont=dict(size=10, color="#94a3b8"),
+        ))
+    fig.update_layout(
+        **PLOTLY_DARK,
+        title=dict(text=title, font=dict(size=13, color="#cbd5e1"), x=0.015, xanchor="left"),
+        height=270,
+        margin=dict(t=44, b=14, l=44, r=14),
+        yaxis=dict(showgrid=True, gridcolor="#1e293b", ticksuffix="%",
+                   tickfont=dict(size=11, color="#64748b")),
+        xaxis=dict(showgrid=False, tickfont=dict(size=11, color="#64748b"), linecolor="#1e293b"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                    font=dict(size=11, color="#94a3b8")),
+    )
+    return fig
+
 def funil_canal(stages, values, title=""):
     colors = ["#1a56db", "#2563eb", "#3b82f6"][:len(stages)]
     fig = go.Figure(go.Funnel(
@@ -516,6 +563,15 @@ try:
                 "Downloads gratuitos a partir do Blog (fiscal.io)", COR_BARRA),
                 use_container_width=True)
 
+        df_s_blog = df_s[df_s["canal_key"] == "blog"]
+        if not df_s_blog.empty:
+            st.plotly_chart(grafico_taxa_conv(
+                df_s_blog,
+                df_l[df_l["canal_key"] == "blog"],
+                df_dl[df_dl["canal_key"] == "blog"],
+                "Evolucao da Taxa de Conversao — Blog",
+            ), use_container_width=True)
+
         t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo", com_midia=True)
         t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo", com_midia=True)
         tc1, tc2 = st.columns(2)
@@ -567,6 +623,12 @@ try:
         if not df_le.empty:
             st.plotly_chart(bar_chart(df_le, "mes", "eventCount",
                 "Leads gerados via E-mail", COR_BARRA), use_container_width=True)
+
+        st.plotly_chart(grafico_taxa_conv(
+            df_s[df_s["canal_key"] == "email"],
+            df_l[df_l["canal_key"] == "email"],
+            title="Evolucao da Taxa de Conversao — E-mail",
+        ), use_container_width=True)
 
         t_leads_em = tabela_campanhas("email", df_l, "Nome do E-mail / Campanha")
         st.caption("Leads gerados por campanha de e-mail")
@@ -622,6 +684,15 @@ try:
         if com_downloads and not df_down.empty:
             st.plotly_chart(bar_chart(df_down, "mes", "eventCount",
                 f"Downloads gratuitos — {label}", cor), use_container_width=True)
+
+        df_s_canal = df_s[df_s["canal_key"] == key]
+        if not df_s_canal.empty:
+            st.plotly_chart(grafico_taxa_conv(
+                df_s_canal,
+                df_l[df_l["canal_key"] == key],
+                df_dl[df_dl["canal_key"] == key] if com_downloads else None,
+                f"Evolucao da Taxa de Conversao — {label}",
+            ), use_container_width=True)
 
         # Tabelas de campanha
         t_leads = tabela_campanhas(key, df_l,  "Campanha")
