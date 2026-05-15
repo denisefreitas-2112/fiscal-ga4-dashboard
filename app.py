@@ -473,7 +473,8 @@ try:
     dl_blog_total = df_dl[df_dl["canal_key"] == "blog"]["eventCount"].sum()
 
     if not df_blog_host.empty:
-        total_sess_blog = df_blog_host["sessions"].sum()
+        total_sess_blog  = df_blog_host["sessions"].sum()
+        sess_blog_fiscal = df_s[df_s["canal_key"] == "blog"]["sessions"].sum()
         ad = df_blog_host["averageSessionDuration"].mean()
         delta_sess_blog  = mom_delta(df_blog_host, "sessions")
         delta_leads_blog = mom_delta(df_l[df_l["canal_key"] == "blog"], "eventCount")
@@ -483,7 +484,7 @@ try:
         b1.metric("Sessoes no Blog",    fmt_num(total_sess_blog), delta=delta_sess_blog)
         b2.metric("Leads via Blog",     fmt_num(leads_blog),      delta=delta_leads_blog)
         b3.metric("Downloads via Blog", fmt_num(dl_blog_total),   delta=delta_dl_blog)
-        b4.metric("Taxa Conv. Lead",    taxa_conv(leads_blog, total_sess_blog))
+        b4.metric("Taxa Conv. Lead",    taxa_conv(leads_blog, sess_blog_fiscal))
         b5.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
 
         # Sessoes: hostName = conteudo.fiscal.io
