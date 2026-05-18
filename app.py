@@ -602,9 +602,9 @@ try:
         b2.metric("Leads Blog",     fmt_num(leads_blog))
         b3.metric("Media Lead/mes", media_mensal(leads_blog,    df_l_blog))
         b4.metric("Downloads Blog", fmt_num(dl_blog_total))
-        b5.metric("Media DL/mes",   media_mensal(dl_blog_total, df_dl_blog))
+        b5.metric("Media Download/mes",   media_mensal(dl_blog_total, df_dl_blog))
         b6.metric("Conv. Lead",     taxa_conv(leads_blog,    sess_blog_fiscal))
-        b7.metric("Conv. DL",       taxa_conv(dl_blog_total, sess_blog_fiscal))
+        b7.metric("Conv. Download",       taxa_conv(dl_blog_total, sess_blog_fiscal))
         b8.metric("Duracao media",  f"{int(ad//60)}m {int(ad%60)}s")
 
         # Sessoes: hostName = conteudo.fiscal.io
@@ -739,9 +739,9 @@ try:
             c2.metric("Leads",           fmt_num(total_leads))
             c3.metric("Media Lead/mes",  media_mensal(total_leads, df_l_canal))
             c4.metric("Downloads",       fmt_num(total_dl))
-            c5.metric("Media DL/mes",    media_mensal(total_dl,    df_dl_canal))
+            c5.metric("Media Download/mes",    media_mensal(total_dl,    df_dl_canal))
             c6.metric("Conv. Lead",      taxa_conv(total_leads, total_sess))
-            c7.metric("Conv. DL",        taxa_conv(total_dl,    total_sess))
+            c7.metric("Conv. Download",        taxa_conv(total_dl,    total_sess))
         else:
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Sessoes",        fmt_num(total_sess))
