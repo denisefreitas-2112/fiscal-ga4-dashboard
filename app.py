@@ -868,21 +868,21 @@ try:
             s = str(s).strip()
             return s not in {"(not set)", "", "null"} and not s.startswith("(")
 
+        # Sessoes: ZohoMarketingHub / email (origem exata dos disparos)
         _zoho_sess = df_s[
             df_s["sessionSource"].str.contains("ZohoMarketingHub", case=False, na=False) &
             (df_s["sessionMedium"].str.lower() == "email")
         ].groupby("sessionCampaignName", as_index=False)["sessions"].sum()
         _zoho_sess = _zoho_sess[_zoho_sess["sessionCampaignName"].apply(_camp_valida_em)]
 
-        _zoho_leads = df_l[
-            df_l["sessionSource"].str.contains("ZohoMarketingHub", case=False, na=False) &
-            (df_l["sessionMedium"].str.lower() == "email")
-        ].groupby("sessionCampaignName", as_index=False)["eventCount"].sum()
-        _zoho_leads = _zoho_leads[_zoho_leads["sessionCampaignName"].apply(_camp_valida_em)]
+        # Leads: canal_key == email (captura todos os leads atribuidos ao canal, independente de host)
+        _em_leads = df_l[df_l["canal_key"] == "email"].groupby(
+            "sessionCampaignName", as_index=False)["eventCount"].sum()
+        _em_leads = _em_leads[_em_leads["sessionCampaignName"].apply(_camp_valida_em)]
 
-        t_em = _zoho_leads.merge(_zoho_sess, on="sessionCampaignName", how="outer").fillna(0)
-        t_em["eventCount"] = t_em["eventCount"].astype(int)
+        t_em = _zoho_sess.merge(_em_leads, on="sessionCampaignName", how="outer").fillna(0)
         t_em["sessions"]   = t_em["sessions"].astype(int)
+        t_em["eventCount"] = t_em["eventCount"].astype(int)
         t_em = t_em.sort_values("eventCount", ascending=False).head(20)
         t_em = t_em.rename(columns={"sessionCampaignName": "Campanha", "sessions": "Sessoes", "eventCount": "Leads"})
         t_em = t_em[["Campanha", "Sessoes", "Leads"]]
