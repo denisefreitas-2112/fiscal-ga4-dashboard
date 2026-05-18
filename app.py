@@ -864,10 +864,35 @@ try:
             title="Evolucao da Taxa de Conversao — E-mail",
         ), use_container_width=True)
 
-        t_leads_em = tabela_campanhas("email", df_l, "Nome do E-mail / Campanha", df_sess=df_s)
-        st.caption("Leads gerados por campanha de e-mail")
-        if not t_leads_em.empty:
-            show_table(t_leads_em)
+        def _camp_valida_em(s):
+            s = str(s).strip()
+            return s not in {"(not set)", "", "null"} and not s.startswith("(")
+
+        _zoho_sess = df_s[
+            df_s["sessionSource"].str.contains("ZohoMarketingHub", case=False, na=False) &
+            (df_s["sessionMedium"].str.lower() == "email")
+        ].groupby("sessionCampaignName", as_index=False)["sessions"].sum()
+        _zoho_sess = _zoho_sess[_zoho_sess["sessionCampaignName"].apply(_camp_valida_em)]
+
+        _zoho_leads = df_l[
+            df_l["sessionSource"].str.contains("ZohoMarketingHub", case=False, na=False) &
+            (df_l["sessionMedium"].str.lower() == "email")
+        ].groupby("sessionCampaignName", as_index=False)["eventCount"].sum()
+        _zoho_leads = _zoho_leads[_zoho_leads["sessionCampaignName"].apply(_camp_valida_em)]
+
+        t_em = _zoho_leads.merge(_zoho_sess, on="sessionCampaignName", how="outer").fillna(0)
+        t_em["eventCount"] = t_em["eventCount"].astype(int)
+        t_em["sessions"]   = t_em["sessions"].astype(int)
+        t_em = t_em.sort_values("eventCount", ascending=False).head(20)
+        t_em = t_em.rename(columns={"sessionCampaignName": "Campanha", "sessions": "Sessoes", "eventCount": "Leads"})
+        t_em = t_em[["Campanha", "Sessoes", "Leads"]]
+        if not t_em.empty:
+            total_row = {"Campanha": "TOTAL", "Sessoes": t_em["Sessoes"].sum(), "Leads": t_em["Leads"].sum()}
+            t_em = pd.concat([t_em, pd.DataFrame([total_row])], ignore_index=True)
+
+        st.caption("Leads gerados por campanha — ZohoMarketingHub / email")
+        if not t_em.empty:
+            show_table(t_em)
         else:
             st.info("Sem dados.")
     else:
