@@ -329,6 +329,10 @@ def taxa_conv(leads, sessions):
         return "—"
     return f"{leads / sessions * 100:.1f}%"
 
+def media_mensal(total, df_canal, ym_col="yearMonth"):
+    n = df_canal[ym_col].nunique() if not df_canal.empty else 0
+    return fmt_num(round(total / n)) if n > 0 else "—"
+
 def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
     """Linha mensal de taxa de conversao (%). Recebe DFs brutos filtrados por canal."""
     sess_m = df_sess_raw.groupby("yearMonth")["sessions"].sum().reset_index()
@@ -584,13 +588,18 @@ try:
         sess_blog_fiscal = df_s[df_s["canal_key"] == "blog"]["sessions"].sum()
         ad = df_blog_host["averageSessionDuration"].mean()
 
-        b1, b2, b3, b4, b5, b6 = st.columns(6)
+        df_l_blog  = df_l[df_l["canal_key"] == "blog"]
+        df_dl_blog = df_dl[df_dl["canal_key"] == "blog"]
+
+        b1, b2, b3, b4, b5, b6, b7, b8 = st.columns(8)
         b1.metric("Sessoes no Blog",    fmt_num(total_sess_blog))
         b2.metric("Leads via Blog",     fmt_num(leads_blog))
-        b3.metric("Downloads via Blog", fmt_num(dl_blog_total))
-        b4.metric("Conv. Lead",         taxa_conv(leads_blog,    sess_blog_fiscal))
-        b5.metric("Conv. Download",     taxa_conv(dl_blog_total, sess_blog_fiscal))
-        b6.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
+        b3.metric("Media Lead/mes",     media_mensal(leads_blog,    df_l_blog))
+        b4.metric("Downloads via Blog", fmt_num(dl_blog_total))
+        b5.metric("Media Download/mes", media_mensal(dl_blog_total, df_dl_blog))
+        b6.metric("Conv. Lead",         taxa_conv(leads_blog,    sess_blog_fiscal))
+        b7.metric("Conv. Download",     taxa_conv(dl_blog_total, sess_blog_fiscal))
+        b8.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
 
         # Sessoes: hostName = conteudo.fiscal.io
         st.plotly_chart(bar_chart(
@@ -664,10 +673,11 @@ try:
     if not df_em_mes.empty:
         total_sess_em = df_em_mes["sessions"].sum()
 
-        e1, e2, e3 = st.columns(3)
+        e1, e2, e3, e4 = st.columns(4)
         e1.metric("Sessoes via E-mail", fmt_num(total_sess_em))
         e2.metric("Leads via E-mail",   fmt_num(leads_em))
-        e3.metric("Conv. Lead",         taxa_conv(leads_em, total_sess_em))
+        e3.metric("Media Lead/mes",     media_mensal(leads_em, df_l[df_l["canal_key"] == "email"]))
+        e4.metric("Conv. Lead",         taxa_conv(leads_em, total_sess_em))
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
             "Sessoes via E-mail", COR_BARRA), use_container_width=True)
@@ -714,18 +724,24 @@ try:
         total_leads = df_lead["eventCount"].sum() if not df_lead.empty else 0
         total_dl    = df_down["eventCount"].sum() if not df_down.empty else 0
 
+        df_l_canal  = df_l[df_l["canal_key"] == key]
+        df_dl_canal = df_dl[df_dl["canal_key"] == key]
+
         if com_downloads:
-            c1, c2, c3, c4, c5 = st.columns(5)
+            c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
             c1.metric(f"Sessoes {label}",   fmt_num(total_sess))
             c2.metric(f"Leads {label}",     fmt_num(total_leads))
-            c3.metric(f"Downloads {label}", fmt_num(total_dl))
-            c4.metric("Conv. Lead",         taxa_conv(total_leads, total_sess))
-            c5.metric("Conv. Download",     taxa_conv(total_dl,    total_sess))
+            c3.metric("Media Lead/mes",     media_mensal(total_leads, df_l_canal))
+            c4.metric(f"Downloads {label}", fmt_num(total_dl))
+            c5.metric("Media Download/mes", media_mensal(total_dl,    df_dl_canal))
+            c6.metric("Conv. Lead",         taxa_conv(total_leads, total_sess))
+            c7.metric("Conv. Download",     taxa_conv(total_dl,    total_sess))
         else:
-            c1, c2, c3 = st.columns(3)
+            c1, c2, c3, c4 = st.columns(4)
             c1.metric(f"Sessoes {label}", fmt_num(total_sess))
             c2.metric(f"Leads {label}",   fmt_num(total_leads))
-            c3.metric("Conv. Lead",       taxa_conv(total_leads, total_sess))
+            c3.metric("Media Lead/mes",   media_mensal(total_leads, df_l_canal))
+            c4.metric("Conv. Lead",       taxa_conv(total_leads, total_sess))
 
         if not df_sess.empty:
             st.plotly_chart(bar_chart(df_sess, "mes", "sessions",
