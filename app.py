@@ -310,6 +310,25 @@ def _and_filter(*exprs):
     )
 
 
+def run_sessions_blog_email(client, start, end):
+    """Sessoes no blog (conteudo.fiscal.io) vindas de canal Email."""
+    resp = client.run_report(ga4_types.RunReportRequest(
+        property=f"properties/{PROPERTY_ID}",
+        dimensions=[ga4_types.Dimension(name="yearMonth")],
+        metrics=[
+            ga4_types.Metric(name="sessions"),
+            ga4_types.Metric(name="engagedSessions"),
+        ],
+        date_ranges=[ga4_types.DateRange(start_date=start, end_date=end)],
+        dimension_filter=_and_filter(
+            _str_filter("hostName", "conteudo.fiscal.io"),
+            _str_filter("sessionDefaultChannelGroup", "Email"),
+        ),
+        limit=10000,
+    ))
+    return _parse_resp(resp)
+
+
 def run_sessions_blog(client, start, end):
     """Sessoes no blog: filtra por hostName = conteudo.fiscal.io."""
     resp = client.run_report(ga4_types.RunReportRequest(
@@ -548,7 +567,8 @@ try:
         df_l    = enrich(run_event(client, "generate_lead",      start_date, end_date))
         df_dl   = enrich(run_event(client, "lead_form_download", start_date, end_date))
         # Blog: sessoes por hostName (conteudo.fiscal.io)
-        df_blog_host = run_sessions_blog(client, start_date, end_date)
+        df_blog_host  = run_sessions_blog(client, start_date, end_date)
+        df_blog_email = run_sessions_blog_email(client, start_date, end_date)
 
     # cast numericos
     df_s["sessions"]               = df_s["sessions"].astype(int)
@@ -563,6 +583,13 @@ try:
         df_blog_host["engagedSessions"]        = df_blog_host["engagedSessions"].astype(int)
         df_blog_host["averageSessionDuration"] = df_blog_host["averageSessionDuration"].astype(float)
         df_blog_host["mes"] = df_blog_host["yearMonth"].apply(
+            lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}"
+        )
+
+    if not df_blog_email.empty:
+        df_blog_email["sessions"]        = df_blog_email["sessions"].astype(int)
+        df_blog_email["engagedSessions"] = df_blog_email["engagedSessions"].astype(int)
+        df_blog_email["mes"] = df_blog_email["yearMonth"].apply(
             lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}"
         )
 
@@ -808,6 +835,17 @@ try:
         sessions=("sessions","sum"),
         engagedSessions=("engagedSessions","sum"),
     ).sort_values("yearMonth")
+
+    # Soma sessoes do blog vindas de e-mail
+    if not df_blog_email.empty:
+        df_blog_em_mes = df_blog_email.groupby(["yearMonth","mes"], as_index=False).agg(
+            sessions=("sessions","sum")
+        )
+        df_em_mes = df_em_mes.merge(df_blog_em_mes, on=["yearMonth","mes"], how="outer", suffixes=("","_blog"))
+        df_em_mes["sessions"] = df_em_mes["sessions"].fillna(0) + df_em_mes["sessions_blog"].fillna(0)
+        df_em_mes = df_em_mes.drop(columns=["sessions_blog"]).sort_values("yearMonth")
+        df_em_mes["sessions"] = df_em_mes["sessions"].astype(int)
+        df_em_mes["engagedSessions"] = df_em_mes["engagedSessions"].fillna(0).astype(int)
 
     leads_em = df_l[df_l["canal_key"]  == "email"]["eventCount"].sum()
     dl_em    = df_dl[df_dl["canal_key"] == "email"]["eventCount"].sum()
