@@ -883,11 +883,13 @@ try:
         t_em = _zoho_sess.merge(_em_leads, on="sessionCampaignName", how="outer").fillna(0)
         t_em["sessions"]   = t_em["sessions"].astype(int)
         t_em["eventCount"] = t_em["eventCount"].astype(int)
+        _total_sess_em_tab = t_em["sessions"].sum()
+        _total_leads_em_tab = t_em["eventCount"].sum()
         t_em = t_em.sort_values("eventCount", ascending=False).head(20)
         t_em = t_em.rename(columns={"sessionCampaignName": "Campanha", "sessions": "Sessoes", "eventCount": "Leads"})
         t_em = t_em[["Campanha", "Sessoes", "Leads"]]
         if not t_em.empty:
-            total_row = {"Campanha": "TOTAL", "Sessoes": t_em["Sessoes"].sum(), "Leads": t_em["Leads"].sum()}
+            total_row = {"Campanha": "TOTAL", "Sessoes": _total_sess_em_tab, "Leads": _total_leads_em_tab}
             t_em = pd.concat([t_em, pd.DataFrame([total_row])], ignore_index=True)
 
         st.caption("Leads gerados por campanha — ZohoMarketingHub / email")
