@@ -395,25 +395,22 @@ def show_metrics(metrics):
     )
 
 def show_table(df):
-    rows_html = ""
-    for i, row in df.iterrows():
-        is_total = str(row.iloc[0]).upper() == "TOTAL"
-        row_style = "font-weight:700;color:#f8fafc;border-top:1px solid #334155;" if is_total else "color:#e2e8f0;"
-        cells = "".join(f"<td style='padding:8px 14px;text-align:center;{row_style}'>{v}</td>" for v in row)
-        rows_html += f"<tr>{cells}</tr>"
-    headers = "".join(
-        f"<th style='padding:8px 14px;text-align:center;background:#1e293b;color:#64748b;"
-        f"font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;'>{c}</th>"
-        for c in df.columns
-    )
-    html = (
-        f"<div style='border:1px solid #1e293b;border-radius:10px;overflow:hidden;margin-bottom:1rem;'>"
-        f"<table style='width:100%;border-collapse:collapse;'>"
-        f"<thead><tr>{headers}</tr></thead>"
-        f"<tbody>{rows_html}</tbody>"
-        f"</table></div>"
-    )
-    st.markdown(html, unsafe_allow_html=True)
+    is_total = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
+    df_data  = df[~is_total].reset_index(drop=True)
+    df_total = df[is_total].reset_index(drop=True)
+    st.dataframe(df_data, use_container_width=True, hide_index=True)
+    if not df_total.empty:
+        cells = "".join(
+            f"<td style='padding:6px 14px;text-align:center;font-weight:700;color:#f8fafc;'>{v}</td>"
+            for v in df_total.iloc[0]
+        )
+        st.markdown(
+            f"<div style='border:1px solid #1e293b;border-radius:0 0 8px 8px;overflow:hidden;"
+            f"margin-top:-8px;margin-bottom:1rem;background:#1e293b;'>"
+            f"<table style='width:100%;border-collapse:collapse;'>"
+            f"<tbody><tr>{cells}</tr></tbody></table></div>",
+            unsafe_allow_html=True,
+        )
 
 def mom_delta(df, value_col, ym_col="yearMonth"):
     """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
