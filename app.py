@@ -504,7 +504,7 @@ try:
                 x=df_ord[x].tolist(),
                 y=trend,
                 mode="lines",
-                line=dict(color="#93c5fd", width=2, dash="dash"),
+                line=dict(color="#93c5fd", width=2),
                 showlegend=False,
                 hoverinfo="skip",
             ))
