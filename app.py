@@ -661,10 +661,12 @@ try:
         group_cols = ["sessionCampaignName"]
         if com_midia:
             group_cols.append("sessionMedium")
+        _invalidos = ["(not set)", "", "null", "(referral)", "(direct)", "(none)"]
+        def _valida(s): return str(s).strip() not in _invalidos and not str(s).strip().startswith("(")
         df = (
             df_evento[df_evento["canal_key"] == canal_key]
             .groupby(group_cols, as_index=False)["eventCount"].sum()
-            .query("sessionCampaignName != '(not set)' and sessionCampaignName != ''")
+            .loc[lambda d: d["sessionCampaignName"].apply(_valida)]
             .sort_values("eventCount", ascending=False)
             .head(top)
         )
@@ -672,7 +674,7 @@ try:
             df_s_camp = (
                 df_sess[df_sess["canal_key"] == canal_key]
                 .groupby("sessionCampaignName", as_index=False)["sessions"].sum()
-                .query("sessionCampaignName != '(not set)' and sessionCampaignName != ''")
+                .loc[lambda d: d["sessionCampaignName"].apply(_valida)]
             )
             df = df.merge(df_s_camp, on="sessionCampaignName", how="left")
             df["sessions"] = df["sessions"].fillna(0).astype(int)
