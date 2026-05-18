@@ -635,9 +635,10 @@ try:
             yaxis=dict(showgrid=True, gridcolor="#2d3748"))
         return fig
 
-    def tabela_campanhas(canal_key, df_evento, col_nome, top=20, com_midia=False):
+    def tabela_campanhas(canal_key, df_evento, col_nome, top=20, com_midia=False, df_sess=None):
         """Retorna tabela: nome da campanha x total de eventos para o canal.
-        com_midia=True adiciona coluna Midia (sessionMedium) para diferenciar artigo/banner."""
+        com_midia=True adiciona coluna Midia (sessionMedium) para diferenciar artigo/banner.
+        df_sess=df_s adiciona coluna Sessoes."""
         group_cols = ["sessionCampaignName"]
         if com_midia:
             group_cols.append("sessionMedium")
@@ -648,16 +649,31 @@ try:
             .sort_values("eventCount", ascending=False)
             .head(top)
         )
+        if df_sess is not None:
+            df_s_camp = (
+                df_sess[df_sess["canal_key"] == canal_key]
+                .groupby("sessionCampaignName", as_index=False)["sessions"].sum()
+                .query("sessionCampaignName != '(not set)' and sessionCampaignName != ''")
+            )
+            df = df.merge(df_s_camp, on="sessionCampaignName", how="left")
+            df["sessions"] = df["sessions"].fillna(0).astype(int)
         rename_map = {"sessionCampaignName": col_nome, "eventCount": "Total"}
         if com_midia:
             rename_map["sessionMedium"] = "Midia"
+        if df_sess is not None:
+            rename_map["sessions"] = "Sessoes"
         df = df.rename(columns=rename_map)
         if com_midia:
-            df = df[[col_nome, "Midia", "Total"]]
+            cols = [col_nome, "Midia", "Sessoes", "Total"] if df_sess is not None else [col_nome, "Midia", "Total"]
+            df = df[cols]
+        elif df_sess is not None:
+            df = df[[col_nome, "Sessoes", "Total"]]
         if not df.empty:
             total_row = {col: "" for col in df.columns}
             total_row[col_nome] = "TOTAL"
             total_row["Total"] = df["Total"].sum()
+            if df_sess is not None:
+                total_row["Sessoes"] = df["Sessoes"].sum()
             df = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
         return df
 
@@ -827,7 +843,7 @@ try:
             title="Evolucao da Taxa de Conversao — E-mail",
         ), use_container_width=True)
 
-        t_leads_em = tabela_campanhas("email", df_l, "Nome do E-mail / Campanha")
+        t_leads_em = tabela_campanhas("email", df_l, "Nome do E-mail / Campanha", df_sess=df_s)
         st.caption("Leads gerados por campanha de e-mail")
         if not t_leads_em.empty:
             show_table(t_leads_em)
