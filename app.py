@@ -33,15 +33,22 @@ st.markdown("""
         box-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
     }
     div[data-testid="stMetric"] label,
-    div[data-testid="stMetricLabel"] > div {
-        font-size: 0.7rem !important;
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricLabel"] > div,
+    div[data-testid="stMetricLabel"] p,
+    div[data-testid="stMetricLabel"] span {
+        font-size: 0.63rem !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.06em !important;
+        letter-spacing: 0.04em !important;
         color: #94a3b8 !important;
         font-weight: 600 !important;
-        margin-top: 0.2rem !important;
         white-space: normal !important;
-        line-height: 1.35 !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.3 !important;
+        word-break: break-word !important;
+    }
+    div[data-testid="stMetric"] {
         overflow: visible !important;
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] > div,
