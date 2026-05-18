@@ -868,18 +868,11 @@ try:
             s = str(s).strip()
             return s not in {"(not set)", "", "null"} and not s.startswith("(")
 
-        _email_re = "ZohoMarketingHub|e-mail|email|mail"
-        def _is_email(src, med):
-            return (pd.Series(src).str.contains(_email_re, case=False, na=False) |
-                    pd.Series(med).str.contains(_email_re, case=False, na=False))
-
-        _mask_s = (
-            df_s["sessionSource"].str.contains(_email_re, case=False, na=False) |
-            df_s["sessionMedium"].str.contains(_email_re, case=False, na=False)
+        _em_sess = df_s[df_s["canal_key"] == "email"].copy()
+        _em_sess["sessionCampaignName"] = _em_sess["sessionCampaignName"].apply(
+            lambda s: s if _camp_valida_em(s) else "Sem campanha"
         )
-        _zoho_sess = df_s[_mask_s].groupby(
-            "sessionCampaignName", as_index=False)["sessions"].sum()
-        _zoho_sess = _zoho_sess[_zoho_sess["sessionCampaignName"].apply(_camp_valida_em)]
+        _zoho_sess = _em_sess.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
 
         _em_leads = df_l[df_l["canal_key"] == "email"].copy()
         _em_leads["sessionCampaignName"] = _em_leads["sessionCampaignName"].apply(
