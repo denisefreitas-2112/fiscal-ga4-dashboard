@@ -725,20 +725,21 @@ try:
             coeffs_gsc = np.polyfit(x_idx_gsc, df_gsc["position"].values, 1)
             trend_gsc  = coeffs_gsc[0] * x_idx_gsc + coeffs_gsc[1]
             fig_gsc = go.Figure()
-            fig_gsc.add_trace(go.Scatter(
+            fig_gsc.add_trace(go.Bar(
                 x=df_gsc["mes"], y=df_gsc["position"],
                 name="Posicao media",
-                mode="lines+markers+text",
-                line=dict(color=COR_BARRA, width=2),
-                marker=dict(size=7),
+                marker_color=COR_BARRA,
+                marker_line_width=0,
+                opacity=0.9,
                 text=df_gsc["position"].apply(lambda v: f"{v:.1f}"),
-                textposition="top center",
-                textfont=dict(size=10, color="#94a3b8"),
+                textposition="outside",
+                textfont=dict(size=11, color="#94a3b8"),
+                cliponaxis=False,
             ))
             fig_gsc.add_trace(go.Scatter(
                 x=df_gsc["mes"], y=trend_gsc,
                 mode="lines",
-                line=dict(color="#93c5fd", width=1.5, dash="dot"),
+                line=dict(color="#93c5fd", width=2, dash="dot"),
                 showlegend=False,
                 hoverinfo="skip",
             ))
@@ -747,11 +748,10 @@ try:
                 showlegend=False,
                 title=dict(text="Posicao Media no Google (Search Console)", font=dict(size=13, color="#cbd5e1"), x=0.015, xanchor="left"),
                 height=265,
-                yaxis=dict(autorange="reversed", showgrid=True, gridcolor="#1e293b",
-                           tickfont=dict(size=11, color="#64748b"),
-                           title=dict(text="Posicao", font=dict(size=11, color="#64748b"))),
+                bargap=0.38,
+                yaxis=dict(autorange="reversed", showgrid=False, showticklabels=False, zeroline=False),
                 xaxis=dict(showgrid=False, tickfont=dict(size=11, color="#64748b"), linecolor="#1e293b"),
-                margin=dict(t=44, b=14, l=44, r=14),
+                margin=dict(t=44, b=14, l=14, r=14),
             )
             st.plotly_chart(fig_gsc, use_container_width=True)
 
