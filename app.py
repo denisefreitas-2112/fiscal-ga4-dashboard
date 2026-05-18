@@ -34,12 +34,15 @@ st.markdown("""
     }
     div[data-testid="stMetric"] label,
     div[data-testid="stMetricLabel"] > div {
-        font-size: 0.68rem !important;
+        font-size: 0.7rem !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.09em !important;
-        color: #64748b !important;
-        font-weight: 500 !important;
+        letter-spacing: 0.06em !important;
+        color: #94a3b8 !important;
+        font-weight: 600 !important;
         margin-top: 0.2rem !important;
+        white-space: normal !important;
+        line-height: 1.35 !important;
+        overflow: visible !important;
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] > div,
     div[data-testid="stMetricValue"] > div {
@@ -595,14 +598,14 @@ try:
         df_dl_blog = df_dl[df_dl["canal_key"] == "blog"]
 
         b1, b2, b3, b4, b5, b6, b7, b8 = st.columns(8)
-        b1.metric("Sessoes no Blog",    fmt_num(total_sess_blog))
-        b2.metric("Leads via Blog",     fmt_num(leads_blog))
-        b3.metric("Media Lead/mes",     media_mensal(leads_blog,    df_l_blog))
-        b4.metric("Downloads via Blog", fmt_num(dl_blog_total))
-        b5.metric("Media Download/mes", media_mensal(dl_blog_total, df_dl_blog))
-        b6.metric("Conv. Lead",         taxa_conv(leads_blog,    sess_blog_fiscal))
-        b7.metric("Conv. Download",     taxa_conv(dl_blog_total, sess_blog_fiscal))
-        b8.metric("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s")
+        b1.metric("Sessoes Blog",    fmt_num(total_sess_blog))
+        b2.metric("Leads Blog",     fmt_num(leads_blog))
+        b3.metric("Media Lead/mes", media_mensal(leads_blog,    df_l_blog))
+        b4.metric("Downloads Blog", fmt_num(dl_blog_total))
+        b5.metric("Media DL/mes",   media_mensal(dl_blog_total, df_dl_blog))
+        b6.metric("Conv. Lead",     taxa_conv(leads_blog,    sess_blog_fiscal))
+        b7.metric("Conv. DL",       taxa_conv(dl_blog_total, sess_blog_fiscal))
+        b8.metric("Duracao media",  f"{int(ad//60)}m {int(ad%60)}s")
 
         # Sessoes: hostName = conteudo.fiscal.io
         st.plotly_chart(bar_chart(
@@ -677,10 +680,10 @@ try:
         total_sess_em = df_em_mes["sessions"].sum()
 
         e1, e2, e3, e4 = st.columns(4)
-        e1.metric("Sessoes via E-mail", fmt_num(total_sess_em))
-        e2.metric("Leads via E-mail",   fmt_num(leads_em))
-        e3.metric("Media Lead/mes",     media_mensal(leads_em, df_l[df_l["canal_key"] == "email"]))
-        e4.metric("Conv. Lead",         taxa_conv(leads_em, total_sess_em))
+        e1.metric("Sessoes Email",   fmt_num(total_sess_em))
+        e2.metric("Leads Email",     fmt_num(leads_em))
+        e3.metric("Media Lead/mes",  media_mensal(leads_em, df_l[df_l["canal_key"] == "email"]))
+        e4.metric("Conv. Lead",      taxa_conv(leads_em, total_sess_em))
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
             "Sessoes via E-mail", COR_BARRA), use_container_width=True)
@@ -732,19 +735,19 @@ try:
 
         if com_downloads:
             c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-            c1.metric(f"Sessoes {label}",   fmt_num(total_sess))
-            c2.metric(f"Leads {label}",     fmt_num(total_leads))
-            c3.metric("Media Lead/mes",     media_mensal(total_leads, df_l_canal))
-            c4.metric(f"Downloads {label}", fmt_num(total_dl))
-            c5.metric("Media Download/mes", media_mensal(total_dl,    df_dl_canal))
-            c6.metric("Conv. Lead",         taxa_conv(total_leads, total_sess))
-            c7.metric("Conv. Download",     taxa_conv(total_dl,    total_sess))
+            c1.metric("Sessoes",         fmt_num(total_sess))
+            c2.metric("Leads",           fmt_num(total_leads))
+            c3.metric("Media Lead/mes",  media_mensal(total_leads, df_l_canal))
+            c4.metric("Downloads",       fmt_num(total_dl))
+            c5.metric("Media DL/mes",    media_mensal(total_dl,    df_dl_canal))
+            c6.metric("Conv. Lead",      taxa_conv(total_leads, total_sess))
+            c7.metric("Conv. DL",        taxa_conv(total_dl,    total_sess))
         else:
             c1, c2, c3, c4 = st.columns(4)
-            c1.metric(f"Sessoes {label}", fmt_num(total_sess))
-            c2.metric(f"Leads {label}",   fmt_num(total_leads))
-            c3.metric("Media Lead/mes",   media_mensal(total_leads, df_l_canal))
-            c4.metric("Conv. Lead",       taxa_conv(total_leads, total_sess))
+            c1.metric("Sessoes",        fmt_num(total_sess))
+            c2.metric("Leads",          fmt_num(total_leads))
+            c3.metric("Media Lead/mes", media_mensal(total_leads, df_l_canal))
+            c4.metric("Conv. Lead",     taxa_conv(total_leads, total_sess))
 
         if not df_sess.empty:
             st.plotly_chart(bar_chart(df_sess, "mes", "sessions",
