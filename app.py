@@ -368,7 +368,7 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
         textposition="top center",
         textfont=dict(size=10, color="#94a3b8"),
     ))
-    t = _trendline(merged["conv_lead"], "#f59e0b")
+    t = _trendline(merged["conv_lead"], "#93c5fd")
     if t:
         fig.add_trace(t)
 
@@ -384,7 +384,7 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
             textposition="bottom center",
             textfont=dict(size=10, color="#94a3b8"),
         ))
-        t2 = _trendline(merged["conv_dl"], "#f59e0b")
+        t2 = _trendline(merged["conv_dl"], "#93c5fd")
         if t2:
             fig.add_trace(t2)
     fig.update_layout(
@@ -504,7 +504,7 @@ try:
                 x=df_ord[x].tolist(),
                 y=trend,
                 mode="lines",
-                line=dict(color="#f59e0b", width=2, dash="dash"),
+                line=dict(color="#93c5fd", width=2, dash="dash"),
                 showlegend=False,
                 hoverinfo="skip",
             ))
