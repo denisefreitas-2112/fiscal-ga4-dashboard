@@ -881,9 +881,11 @@ try:
             "sessionCampaignName", as_index=False)["sessions"].sum()
         _zoho_sess = _zoho_sess[_zoho_sess["sessionCampaignName"].apply(_camp_valida_em)]
 
-        _em_leads = df_l[df_l["canal_key"] == "email"].groupby(
-            "sessionCampaignName", as_index=False)["eventCount"].sum()
-        _em_leads = _em_leads[_em_leads["sessionCampaignName"].apply(_camp_valida_em)]
+        _em_leads = df_l[df_l["canal_key"] == "email"].copy()
+        _em_leads["sessionCampaignName"] = _em_leads["sessionCampaignName"].apply(
+            lambda s: s if _camp_valida_em(s) else "Sem campanha"
+        )
+        _em_leads = _em_leads.groupby("sessionCampaignName", as_index=False)["eventCount"].sum()
 
         t_em = _zoho_sess.merge(_em_leads, on="sessionCampaignName", how="outer").fillna(0)
         t_em["sessions"]   = t_em["sessions"].astype(int)
