@@ -704,12 +704,17 @@ try:
 
     if not df_em_mes.empty:
         total_sess_em = df_em_mes["sessions"].sum()
+        ad_em = (
+            (df_em["averageSessionDuration"] * df_em["sessions"]).sum() / df_em["sessions"].sum()
+            if df_em["sessions"].sum() > 0 else 0
+        )
 
         show_metrics([
             ("Sessoes Email",   fmt_num(total_sess_em)),
             ("Leads Email",     fmt_num(leads_em)),
             ("Media Lead/mes",  media_mensal(leads_em, df_l[df_l["canal_key"] == "email"])),
             ("Conv. Lead",      taxa_conv(leads_em, total_sess_em)),
+            ("Duracao media",   f"{int(ad_em//60)}m {int(ad_em%60)}s"),
         ])
 
         st.plotly_chart(bar_chart(df_em_mes, "mes", "sessions",
