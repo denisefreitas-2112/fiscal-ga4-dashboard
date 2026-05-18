@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from google.oauth2.credentials import Credentials
@@ -340,6 +341,23 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
     merged = merged.sort_values("yearMonth")
     merged["conv_lead"] = merged.apply(
         lambda r: round(r["leads"] / r["sessions"] * 100, 1) if r["sessions"] > 0 else None, axis=1)
+    x_idx = np.arange(len(merged))
+
+    def _trendline(series, color):
+        vals = series.fillna(0).values
+        if len(vals) < 2:
+            return None
+        coeffs = np.polyfit(x_idx, vals, 1)
+        return go.Scatter(
+            x=merged["mes"].tolist(),
+            y=(coeffs[0] * x_idx + coeffs[1]).tolist(),
+            mode="lines",
+            line=dict(color=color, width=1.5, dash="dot"),
+            showlegend=False,
+            hoverinfo="skip",
+            opacity=0.6,
+        )
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=merged["mes"], y=merged["conv_lead"], name="Conv. Lead",
@@ -350,6 +368,10 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
         textposition="top center",
         textfont=dict(size=10, color="#94a3b8"),
     ))
+    t = _trendline(merged["conv_lead"], "#f59e0b")
+    if t:
+        fig.add_trace(t)
+
     if "downloads" in merged.columns:
         merged["conv_dl"] = merged.apply(
             lambda r: round(r["downloads"] / r["sessions"] * 100, 1) if r["sessions"] > 0 else None, axis=1)
@@ -362,6 +384,9 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
             textposition="bottom center",
             textfont=dict(size=10, color="#94a3b8"),
         ))
+        t2 = _trendline(merged["conv_dl"], "#f59e0b")
+        if t2:
+            fig.add_trace(t2)
     fig.update_layout(
         **PLOTLY_DARK,
         title=dict(text=title, font=dict(size=13, color="#cbd5e1"), x=0.015, xanchor="left"),
@@ -457,11 +482,12 @@ try:
     def bar_chart(df, x, y, title, color, text_col=None):
         tc = text_col or y
         text_vals = df[tc].apply(fmt_num)
-        fig = px.bar(df, x=x, y=y,
+        df_ord = df.set_index(x).reindex(meses_label).reset_index().dropna(subset=[y])
+        fig = px.bar(df_ord, x=x, y=y,
             category_orders={x: meses_label},
             labels={x: "", y: ""},
             color_discrete_sequence=[color],
-            text=text_vals)
+            text=df_ord[tc].apply(fmt_num))
         fig.update_traces(
             textposition="outside",
             textfont=dict(size=11, color="#94a3b8"),
@@ -469,6 +495,19 @@ try:
             marker_line_width=0,
             opacity=0.9,
         )
+        if len(df_ord) > 1:
+            y_vals = df_ord[y].astype(float).values
+            x_idx = np.arange(len(y_vals))
+            coeffs = np.polyfit(x_idx, y_vals, 1)
+            trend = coeffs[0] * x_idx + coeffs[1]
+            fig.add_trace(go.Scatter(
+                x=df_ord[x].tolist(),
+                y=trend,
+                mode="lines",
+                line=dict(color="#f59e0b", width=2, dash="dash"),
+                showlegend=False,
+                hoverinfo="skip",
+            ))
         fig.update_layout(
             **PLOTLY_DARK,
             showlegend=False,
