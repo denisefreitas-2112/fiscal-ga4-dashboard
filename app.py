@@ -868,15 +868,24 @@ try:
             s = str(s).strip()
             return s not in {"(not set)", "", "null"} and not s.startswith("(")
 
-        # Sessoes: ZohoMarketingHub / email (origem exata dos disparos)
-        _zoho_sess = df_s[
-            df_s["sessionSource"].str.contains("ZohoMarketingHub", case=False, na=False) &
-            (df_s["sessionMedium"].str.lower() == "email")
-        ].groupby("sessionCampaignName", as_index=False)["sessions"].sum()
+        _email_re = "ZohoMarketingHub|e-mail|email|mail"
+        def _is_email(src, med):
+            return (pd.Series(src).str.contains(_email_re, case=False, na=False) |
+                    pd.Series(med).str.contains(_email_re, case=False, na=False))
+
+        _mask_s = (
+            df_s["sessionSource"].str.contains(_email_re, case=False, na=False) |
+            df_s["sessionMedium"].str.contains(_email_re, case=False, na=False)
+        )
+        _zoho_sess = df_s[_mask_s].groupby(
+            "sessionCampaignName", as_index=False)["sessions"].sum()
         _zoho_sess = _zoho_sess[_zoho_sess["sessionCampaignName"].apply(_camp_valida_em)]
 
-        # Leads: canal_key == email (captura todos os leads atribuidos ao canal, independente de host)
-        _em_leads = df_l[df_l["canal_key"] == "email"].groupby(
+        _mask_l = (
+            df_l["sessionSource"].str.contains(_email_re, case=False, na=False) |
+            df_l["sessionMedium"].str.contains(_email_re, case=False, na=False)
+        )
+        _em_leads = df_l[_mask_l].groupby(
             "sessionCampaignName", as_index=False)["eventCount"].sum()
         _em_leads = _em_leads[_em_leads["sessionCampaignName"].apply(_camp_valida_em)]
 
