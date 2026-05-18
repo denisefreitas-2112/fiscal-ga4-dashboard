@@ -8,6 +8,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta import types as ga4_types
+from googleapiclient.discovery import build as gapi_build
 from datetime import date
 
 st.set_page_config(
@@ -162,6 +163,60 @@ def get_client():
     creds.refresh(Request())
     return BetaAnalyticsDataClient(credentials=creds)
 
+
+# ── Search Console ────────────────────────────────────────────────────────────
+GSC_SITE = "https://conteudo.fiscal.io/"
+
+@st.cache_resource
+def get_gsc_service():
+    creds = Credentials(
+        token=None,
+        refresh_token=st.secrets["GA4_REFRESH_TOKEN"],
+        client_id=st.secrets["GA4_CLIENT_ID"],
+        client_secret=st.secrets["GA4_CLIENT_SECRET"],
+        token_uri="https://oauth2.googleapis.com/token",
+        scopes=["https://www.googleapis.com/auth/webmasters.readonly"],
+    )
+    creds.refresh(Request())
+    return gapi_build("searchconsole", "v1", credentials=creds)
+
+@st.cache_data(ttl=3600)
+def run_gsc_monthly(start, end):
+    try:
+        svc = get_gsc_service()
+        resp = svc.searchanalytics().query(
+            siteUrl=GSC_SITE,
+            body={
+                "startDate": start,
+                "endDate": end,
+                "dimensions": ["date"],
+                "rowLimit": 25000,
+                "dataState": "all",
+            },
+        ).execute()
+        rows = resp.get("rows", [])
+        if not rows:
+            return pd.DataFrame()
+        df = pd.DataFrame([{
+            "date":        r["keys"][0],
+            "clicks":      r["clicks"],
+            "impressions": r["impressions"],
+            "position":    r["position"],
+        } for r in rows])
+        df["yearMonth"] = df["date"].str[:7].str.replace("-", "")
+        df_m = (
+            df.groupby("yearMonth")
+            .agg(position=("position", "mean"), clicks=("clicks", "sum"),
+                 impressions=("impressions", "sum"))
+            .reset_index()
+        )
+        df_m["position"] = df_m["position"].round(1)
+        df_m["mes"] = df_m["yearMonth"].apply(
+            lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}"
+        )
+        return df_m.sort_values("yearMonth")
+    except Exception:
+        return None
 
 # ── Classificador ─────────────────────────────────────────────────────────────
 def classify_canal(channel_group, source, medium):
@@ -660,6 +715,45 @@ try:
             st.plotly_chart(bar_chart(df_dl_blog_mes, "mes", "eventCount",
                 "Downloads gratuitos a partir do Blog (fiscal.io)", COR_BARRA),
                 use_container_width=True)
+
+        # ── Search Console: posicao media mensal ──────────────
+        df_gsc = run_gsc_monthly(start_date, end_date)
+        if df_gsc is None:
+            st.warning("Search Console: sem permissao no token atual. Gere um novo token com o scope webmasters.readonly.")
+        elif not df_gsc.empty:
+            x_idx_gsc = np.arange(len(df_gsc))
+            coeffs_gsc = np.polyfit(x_idx_gsc, df_gsc["position"].values, 1)
+            trend_gsc  = coeffs_gsc[0] * x_idx_gsc + coeffs_gsc[1]
+            fig_gsc = go.Figure()
+            fig_gsc.add_trace(go.Scatter(
+                x=df_gsc["mes"], y=df_gsc["position"],
+                name="Posicao media",
+                mode="lines+markers+text",
+                line=dict(color=COR_BARRA, width=2),
+                marker=dict(size=7),
+                text=df_gsc["position"].apply(lambda v: f"{v:.1f}"),
+                textposition="top center",
+                textfont=dict(size=10, color="#94a3b8"),
+            ))
+            fig_gsc.add_trace(go.Scatter(
+                x=df_gsc["mes"], y=trend_gsc,
+                mode="lines",
+                line=dict(color="#93c5fd", width=1.5, dash="dot"),
+                showlegend=False,
+                hoverinfo="skip",
+            ))
+            fig_gsc.update_layout(
+                **PLOTLY_DARK,
+                showlegend=False,
+                title=dict(text="Posicao Media no Google (Search Console)", font=dict(size=13, color="#cbd5e1"), x=0.015, xanchor="left"),
+                height=265,
+                yaxis=dict(autorange="reversed", showgrid=True, gridcolor="#1e293b",
+                           tickfont=dict(size=11, color="#64748b"),
+                           title=dict(text="Posicao", font=dict(size=11, color="#64748b"))),
+                xaxis=dict(showgrid=False, tickfont=dict(size=11, color="#64748b"), linecolor="#1e293b"),
+                margin=dict(t=44, b=14, l=44, r=14),
+            )
+            st.plotly_chart(fig_gsc, use_container_width=True)
 
         df_s_blog = df_s[df_s["canal_key"] == "blog"]
         if not df_s_blog.empty:
