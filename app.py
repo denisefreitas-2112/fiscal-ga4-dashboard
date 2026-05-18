@@ -24,27 +24,30 @@ st.markdown("""
         border-right: 1px solid #1e293b !important;
     }
     /* ── Metric Cards ─────────────────────────────────────── */
+    div[data-testid="stMetric"],
     div[data-testid="metric-container"] {
-        background: #111827;
-        border: 1px solid #1e293b;
-        border-radius: 12px;
-        padding: 1.1rem 1.4rem 1rem 1.4rem;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        background: #111827 !important;
+        border: 1px solid #1e293b !important;
+        border-radius: 12px !important;
+        padding: 1.1rem 1.4rem 1rem 1.4rem !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
     }
+    div[data-testid="stMetric"] label,
+    div[data-testid="stMetricLabel"] > div {
+        font-size: 0.68rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.09em !important;
+        color: #64748b !important;
+        font-weight: 500 !important;
+        margin-top: 0.2rem !important;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] > div,
     div[data-testid="stMetricValue"] > div {
         font-size: 2.1rem !important;
         font-weight: 700 !important;
         color: #f8fafc !important;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
-    }
-    div[data-testid="stMetricLabel"] > div {
-        font-size: 0.68rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.09em;
-        color: #64748b !important;
-        font-weight: 500;
-        margin-top: 0.2rem;
+        letter-spacing: -0.02em !important;
+        line-height: 1.1 !important;
     }
     /* ── Chart Cards ──────────────────────────────────────── */
     div[data-testid="stPlotlyChart"] > div {
