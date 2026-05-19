@@ -406,7 +406,7 @@ def show_table(df):
     st.dataframe(df_data.astype(str), use_container_width=True, hide_index=True, column_config=col_cfg)
     if not df_total.empty:
         cells = "".join(
-            f"<td style='padding:6px 14px;text-align:center;font-weight:700;color:#f8fafc;'>{v}</td>"
+            f"<td style='padding:6px 14px;text-align:left;font-weight:700;color:#f8fafc;'>{v}</td>"
             for v in df_total.iloc[0]
         )
         st.markdown(
