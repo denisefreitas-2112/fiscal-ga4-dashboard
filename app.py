@@ -810,29 +810,25 @@ try:
             s = str(s).strip()
             return "Sem UTM" if (s in {"(not set)", "", "null"} or s.startswith("(")) else s
 
-        # Sessoes filtradas por medium do blog
+        # Sessoes filtradas por medium do blog, agrupadas por campanha
         _df_bs = df_s[df_s["sessionMedium"].str.lower().isin(_midia_map)].copy()
-        _df_bs["sessionMedium"]       = _df_bs["sessionMedium"].str.lower().map(_midia_map)
         _df_bs["sessionCampaignName"] = _df_bs["sessionCampaignName"].apply(_norm_camp_blog)
-        _blog_sess = _df_bs.groupby(["sessionCampaignName","sessionMedium"], as_index=False)["sessions"].sum()
-        _tot_sess_blog = _blog_sess["sessions"].sum()
+        _blog_sess = _df_bs.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
 
         def _build_blog_table(df_ev, tot_col):
             _dfe = df_ev[df_ev["canal_key"] == "blog"].copy()
             _dfe["sessionCampaignName"] = _dfe["sessionCampaignName"].apply(_norm_camp_blog)
             _total_ev = _dfe["eventCount"].sum()
             _ev_grp = _dfe.groupby("sessionCampaignName", as_index=False)["eventCount"].sum()
-            t = _blog_sess.merge(_ev_grp, on="sessionCampaignName", how="outer").fillna(0)
+            t = _ev_grp.merge(_blog_sess, on="sessionCampaignName", how="outer").fillna(0)
             t["sessions"]   = t["sessions"].astype(int)
             t["eventCount"] = t["eventCount"].astype(int)
-            t["sessionMedium"] = t["sessionMedium"].fillna("")
             _tot_s = t["sessions"].sum()
             t = t.sort_values("eventCount", ascending=False).head(20)
             t = t.rename(columns={"sessionCampaignName": "Artigo / Campanha",
-                                   "sessionMedium": "Midia", "sessions": "Sessoes",
-                                   "eventCount": tot_col})
-            t = t[["Artigo / Campanha", "Midia", "Sessoes", tot_col]]
-            total_row = {"Artigo / Campanha": "TOTAL", "Midia": "", "Sessoes": _tot_s, tot_col: _total_ev}
+                                   "sessions": "Sessoes", "eventCount": tot_col})
+            t = t[["Artigo / Campanha", "Sessoes", tot_col]]
+            total_row = {"Artigo / Campanha": "TOTAL", "Sessoes": _tot_s, tot_col: _total_ev}
             return pd.concat([t, pd.DataFrame([total_row])], ignore_index=True)
 
         tc1, tc2 = st.columns(2)
