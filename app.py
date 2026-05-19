@@ -419,7 +419,7 @@ def show_table(df):
         return str(val)
 
     ths = "".join(
-        f'<th onclick="sc({i})" id="h{i}">{col}</th>'
+        f'<th onclick="sc({i})" id="h{i}" class="{"num" if col in numeric_cols else ""}">{col}</th>'
         for i, col in enumerate(cols)
     )
 
@@ -429,7 +429,7 @@ def show_table(df):
         for col in cols:
             val = row[col]
             if col in numeric_cols:
-                trs += f'<td data-n="{val}">{_fmt(val, col)}</td>'
+                trs += f'<td class="num" data-n="{val}">{_fmt(val, col)}</td>'
             else:
                 trs += f'<td>{val}</td>'
         trs += "</tr>"
@@ -456,7 +456,9 @@ thead th{{
 thead th:hover{{background:#253047;color:#cbd5e1}}
 thead th.asc::after{{content:" ↑";color:#3b82f6;font-size:10px}}
 thead th.desc::after{{content:" ↓";color:#3b82f6;font-size:10px}}
+thead th.num{{text-align:center}}
 tbody td{{padding:8px 14px;text-align:left;border-bottom:1px solid #1a2234;white-space:nowrap}}
+tbody td.num{{text-align:center}}
 tbody tr:hover td{{background:rgba(59,130,246,.07)}}
 tr.total td{{background:#1e293b;font-weight:700;color:#f8fafc;border-top:2px solid #334155;border-bottom:none}}
 </style></head><body><table id="t">
