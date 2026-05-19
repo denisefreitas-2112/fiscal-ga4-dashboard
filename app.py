@@ -658,24 +658,24 @@ try:
         group_cols = ["sessionCampaignName"]
         if com_midia:
             group_cols.append("sessionMedium")
-        _invalidos = ["(not set)", "", "null", "(referral)", "(direct)", "(none)"]
-        def _valida(s): return str(s).strip() not in _invalidos and not str(s).strip().startswith("(")
-        _df_canal = df_evento[df_evento["canal_key"] == canal_key]
+        _sem_utm = {"(not set)", "", "null"}
+        def _normaliza(s):
+            s = str(s).strip()
+            return "Sem UTM" if (s in _sem_utm or s.startswith("(")) else s
+
+        _df_canal = df_evento[df_evento["canal_key"] == canal_key].copy()
+        _df_canal["sessionCampaignName"] = _df_canal["sessionCampaignName"].apply(_normaliza)
         _total_eventos = _df_canal["eventCount"].sum()
         df = (
             _df_canal
             .groupby(group_cols, as_index=False)["eventCount"].sum()
-            .loc[lambda d: d["sessionCampaignName"].apply(_valida)]
             .sort_values("eventCount", ascending=False)
         )
         if df_sess is not None:
-            _df_sess_canal = df_sess[df_sess["canal_key"] == canal_key]
+            _df_sess_canal = df_sess[df_sess["canal_key"] == canal_key].copy()
+            _df_sess_canal["sessionCampaignName"] = _df_sess_canal["sessionCampaignName"].apply(_normaliza)
             _total_sessoes = _df_sess_canal["sessions"].sum()
-            df_s_camp = (
-                _df_sess_canal
-                .groupby("sessionCampaignName", as_index=False)["sessions"].sum()
-                .loc[lambda d: d["sessionCampaignName"].apply(_valida)]
-            )
+            df_s_camp = _df_sess_canal.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
             df = df.merge(df_s_camp, on="sessionCampaignName", how="left")
             df["sessions"] = df["sessions"].fillna(0).astype(int)
         else:
@@ -804,8 +804,8 @@ try:
                 "Evolucao da Taxa de Conversao — Blog",
             ), use_container_width=True)
 
-        t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo", com_midia=True)
-        t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo", com_midia=True)
+        t_leads_blog = tabela_campanhas("blog", df_l,  "Artigo", com_midia=True, df_sess=df_s)
+        t_dl_blog    = tabela_campanhas("blog", df_dl, "Artigo", com_midia=True, df_sess=df_s)
         tc1, tc2 = st.columns(2)
         with tc1:
             st.caption("Leads gerados por artigo / campanha")
