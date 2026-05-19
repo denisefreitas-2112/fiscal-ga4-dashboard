@@ -399,21 +399,36 @@ def show_metrics(metrics):
     )
 
 def show_table(df):
-    df_display = df.copy()
+    is_total = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
+    df_data  = df[~is_total].reset_index(drop=True).copy()
+    df_total = df[is_total].reset_index(drop=True).copy()
+
     col_cfg = {}
-    for col in df_display.columns:
+    for col in df_data.columns:
         try:
-            df_display[col] = pd.to_numeric(df_display[col])
+            df_data[col] = pd.to_numeric(df_data[col])
+            if not df_total.empty:
+                df_total[col] = pd.to_numeric(df_total[col])
         except (ValueError, TypeError):
             col_cfg[col] = st.column_config.TextColumn(col)
 
-    def _style(row):
-        if str(row.iloc[0]).upper() == "TOTAL":
-            return ["font-weight:700;color:#f8fafc;background-color:#1e293b"] * len(row)
-        return [""] * len(row)
+    st.dataframe(df_data, use_container_width=True, hide_index=True, column_config=col_cfg)
 
-    styled = df_display.style.apply(_style, axis=1)
-    st.dataframe(styled, use_container_width=True, hide_index=True, column_config=col_cfg)
+    if not df_total.empty:
+        vals = df_total.iloc[0].tolist()
+        # flex:3 para col texto, flex:1 para numericas — aproxima distribuicao do st.dataframe
+        flexes = [3] + [1] * (len(vals) - 1)
+        cells = "".join(
+            f"<div style='flex:{f};padding:6px 12px;font-weight:700;color:#f8fafc;"
+            f"overflow:hidden;white-space:nowrap;'>{v}</div>"
+            for f, v in zip(flexes, vals)
+        )
+        st.markdown(
+            f"<div style='display:flex;margin-top:-6px;margin-bottom:1rem;"
+            f"background:#1e293b;border:1px solid #334155;border-radius:0 0 6px 6px;'>"
+            f"{cells}</div>",
+            unsafe_allow_html=True,
+        )
 
 def mom_delta(df, value_col, ym_col="yearMonth"):
     """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
