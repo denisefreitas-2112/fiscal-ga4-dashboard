@@ -399,13 +399,39 @@ def show_metrics(metrics):
     )
 
 def show_table(df):
-    def _style(row):
-        if str(row.iloc[0]).upper() == "TOTAL":
-            return ["font-weight:700;color:#f8fafc;background-color:#1e293b"] * len(row)
-        return [""] * len(row)
-    col_cfg = {c: st.column_config.TextColumn(c) for c in df.columns}
-    styled  = df.astype(str).style.apply(_style, axis=1)
-    st.dataframe(styled, use_container_width=True, hide_index=True, column_config=col_cfg)
+    is_total  = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
+    df_data   = df[~is_total].reset_index(drop=True).copy()
+    df_total  = df[is_total].reset_index(drop=True).copy()
+
+    # Converte colunas numericas para int/float mantendo texto como texto
+    col_cfg = {}
+    for col in df_data.columns:
+        try:
+            df_data[col]  = pd.to_numeric(df_data[col])
+            if not df_total.empty:
+                df_total[col] = pd.to_numeric(df_total[col])
+        except (ValueError, TypeError):
+            col_cfg[col] = st.column_config.TextColumn(col)
+
+    st.dataframe(df_data, use_container_width=True, hide_index=True, column_config=col_cfg)
+
+    if not df_total.empty:
+        vals = df_total.iloc[0].tolist()
+        cells = "".join(
+            f"<td style='padding:7px 10px;text-align:left;font-weight:700;color:#f8fafc;"
+            f"white-space:nowrap;'>{v}</td>"
+            for v in vals
+        )
+        n = len(vals)
+        col_widths = " ".join([f"{100/n:.1f}%"] * n)
+        st.markdown(
+            f"<div style='overflow:hidden;margin-top:-4px;margin-bottom:1rem;"
+            f"background:#1e293b;border:1px solid #334155;border-radius:0 0 6px 6px;'>"
+            f"<table style='width:100%;border-collapse:collapse;table-layout:fixed;'>"
+            f"<colgroup>{''.join(f'<col style=width:{100/n:.1f}%>' for _ in vals)}</colgroup>"
+            f"<tbody><tr>{cells}</tr></tbody></table></div>",
+            unsafe_allow_html=True,
+        )
 
 def mom_delta(df, value_col, ym_col="yearMonth"):
     """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
