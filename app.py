@@ -604,11 +604,10 @@ def funil_canal(stages, values, title=""):
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
+st.sidebar.image("logo.png", use_container_width=True)
 st.sidebar.markdown(
-    "<div style='padding:0.6rem 0 0.4rem 0;'>"
-    "<span style='font-size:1.25rem;font-weight:800;color:#f8fafc;letter-spacing:-0.02em;'>Fiscal</span>"
-    "<span style='font-size:1.25rem;font-weight:800;color:#1a56db;letter-spacing:-0.02em;'>.IO</span>"
-    "<br><span style='font-size:0.65rem;color:#475569;letter-spacing:0.08em;text-transform:uppercase;'>"
+    "<div style='padding:0.1rem 0 0.2rem 0;'>"
+    "<span style='font-size:0.65rem;color:#475569;letter-spacing:0.08em;text-transform:uppercase;'>"
     "Analytics Dashboard</span></div>",
     unsafe_allow_html=True,
 )
