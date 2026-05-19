@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -22,11 +23,6 @@ st.markdown("""
     /* ── Topo ─────────────────────────────────────────────── */
     .block-container {
         padding-top: 2rem !important;
-    }
-    /* ── Tabelas: alinhamento à esquerda ─────────────────── */
-    [data-testid="stDataFrame"] td,
-    [data-testid="stDataFrame"] th {
-        text-align: left !important;
     }
     /* ── Sidebar ───────────────────────────────────────────── */
     section[data-testid="stSidebar"] {
@@ -100,12 +96,8 @@ st.markdown("""
         text-transform: uppercase;
     }
     .sub-header-meta { border-left-color: #1877f2; }
-    /* ── Tables ───────────────────────────────────────────── */
-    div[data-testid="stDataFrame"] {
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid #1e293b !important;
-    }
+    /* ── Tables (iframe components) ──────────────────────── */
+    iframe { border: none !important; }
     /* ── Captions ─────────────────────────────────────────── */
     div[data-testid="stCaptionContainer"] p {
         font-size: 0.8rem;
@@ -408,33 +400,94 @@ def show_table(df):
     df_data  = df[~is_total].reset_index(drop=True).copy()
     df_total = df[is_total].reset_index(drop=True).copy()
 
-    col_cfg = {}
+    numeric_cols = set()
     for col in df_data.columns:
         try:
             df_data[col] = pd.to_numeric(df_data[col])
             if not df_total.empty:
                 df_total[col] = pd.to_numeric(df_total[col])
+            numeric_cols.add(col)
         except (ValueError, TypeError):
-            col_cfg[col] = st.column_config.TextColumn(col)
+            pass
 
-    styled = df_data.style.set_properties(**{"text-align": "left"})
-    st.dataframe(styled, use_container_width=True, hide_index=True, column_config=col_cfg)
+    cols = df_data.columns.tolist()
 
+    def _fmt(val, col):
+        if col in numeric_cols:
+            try:
+                return f"{int(round(val)):,}".replace(",", ".")
+            except Exception:
+                return str(val)
+        return str(val)
+
+    ths = "".join(
+        f'<th onclick="sc({i})" id="h{i}">{col}</th>'
+        for i, col in enumerate(cols)
+    )
+
+    trs = ""
+    for _, row in df_data.iterrows():
+        trs += "<tr>"
+        for col in cols:
+            val = row[col]
+            if col in numeric_cols:
+                trs += f'<td data-n="{val}">{_fmt(val, col)}</td>'
+            else:
+                trs += f'<td>{val}</td>'
+        trs += "</tr>"
+
+    tot = ""
     if not df_total.empty:
-        vals = df_total.iloc[0].tolist()
-        # flex:3 para col texto, flex:1 para numericas — aproxima distribuicao do st.dataframe
-        flexes = [3] + [1] * (len(vals) - 1)
-        cells = "".join(
-            f"<div style='flex:{f};padding:6px 12px;font-weight:700;color:#f8fafc;"
-            f"text-align:left;overflow:hidden;white-space:nowrap;'>{v}</div>"
-            for f, v in zip(flexes, vals)
-        )
-        st.markdown(
-            f"<div style='display:flex;margin-top:-6px;margin-bottom:1rem;"
-            f"background:#1e293b;border:1px solid #334155;border-radius:0 0 6px 6px;'>"
-            f"{cells}</div>",
-            unsafe_allow_html=True,
-        )
+        tot = '<tr class="total">'
+        for col in cols:
+            val = df_total.iloc[0][col]
+            tot += f'<td>{_fmt(val, col)}</td>'
+        tot += "</tr>"
+
+    height = 44 + len(df_data) * 37 + (37 if not df_total.empty else 0) + 8
+
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}}
+html,body{{background:#0f1117;overflow:hidden}}
+table{{width:100%;border-collapse:collapse;font-size:13px;color:#e2e8f0}}
+thead th{{
+  background:#1e293b;color:#94a3b8;font-size:11px;text-transform:uppercase;
+  letter-spacing:.05em;font-weight:600;padding:9px 14px;text-align:left;
+  cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid #334155
+}}
+thead th:hover{{background:#253047;color:#cbd5e1}}
+thead th.asc::after{{content:" ↑";color:#3b82f6;font-size:10px}}
+thead th.desc::after{{content:" ↓";color:#3b82f6;font-size:10px}}
+tbody td{{padding:8px 14px;text-align:left;border-bottom:1px solid #1a2234;white-space:nowrap}}
+tbody tr:hover td{{background:rgba(59,130,246,.07)}}
+tr.total td{{background:#1e293b;font-weight:700;color:#f8fafc;border-top:2px solid #334155;border-bottom:none}}
+</style></head><body><table id="t">
+  <thead><tr>{ths}</tr></thead>
+  <tbody>{trs}{tot}</tbody>
+</table>
+<script>
+var _s={{col:null,dir:0}};
+function sc(i){{
+  var tb=document.querySelector('#t tbody');
+  var rows=Array.from(tb.querySelectorAll('tr:not(.total)'));
+  var tot=tb.querySelector('tr.total');
+  _s.dir=(_s.col===i)?-_s.dir:-1;
+  _s.col=i;
+  document.querySelectorAll('#t thead th').forEach(function(th,j){{
+    th.className=j===i?(_s.dir===-1?'desc':'asc'):'';
+  }});
+  rows.sort(function(a,b){{
+    var ac=a.cells[i],bc=b.cells[i];
+    var an=ac.dataset.n,bn=bc.dataset.n;
+    return (an!==undefined)?_s.dir*(parseFloat(an)-parseFloat(bn)):
+      _s.dir*ac.textContent.localeCompare(bc.textContent);
+  }});
+  rows.forEach(function(r){{tb.appendChild(r);}});
+  if(tot)tb.appendChild(tot);
+}}
+</script></body></html>"""
+
+    components.html(html, height=height, scrolling=False)
 
 def mom_delta(df, value_col, ym_col="yearMonth"):
     """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
