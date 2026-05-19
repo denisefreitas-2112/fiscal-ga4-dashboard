@@ -13,7 +13,7 @@ from googleapiclient.discovery import build as gapi_build
 from datetime import date
 
 st.set_page_config(
-    page_title="Tabela de Desempenho - Marketing - Fiscal.IO",
+    page_title="Painel de Desempenho - Marketing - Fiscal.IO",
     page_icon="\U0001f4ca",
     layout="wide",
 )
@@ -625,7 +625,7 @@ st.sidebar.caption("Property 307883096")
 st.markdown(
     f"<h1 style='margin:0 0 0.15rem 0;color:#f8fafc;font-weight:700;"
     f"font-size:1.7rem;letter-spacing:-0.02em;'>"
-    f"Tabela de Desempenho - Marketing</h1>"
+    f"Painel de Desempenho - Marketing</h1>"
     f"<p style='color:#64748b;font-size:0.82rem;margin:0 0 0.5rem 0;"
     f"letter-spacing:0.03em;'>"
     f"Fiscal.IO &nbsp;&nbsp;·&nbsp;&nbsp; {ano} &nbsp;&nbsp;·&nbsp;&nbsp; "
