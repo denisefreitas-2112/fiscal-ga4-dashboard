@@ -412,7 +412,8 @@ def show_table(df):
         except (ValueError, TypeError):
             col_cfg[col] = st.column_config.TextColumn(col)
 
-    st.dataframe(df_data, use_container_width=True, hide_index=True, column_config=col_cfg)
+    styled = df_data.style.set_properties(**{"text-align": "left"})
+    st.dataframe(styled, use_container_width=True, hide_index=True, column_config=col_cfg)
 
     if not df_total.empty:
         vals = df_total.iloc[0].tolist()
