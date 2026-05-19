@@ -660,22 +660,26 @@ try:
             group_cols.append("sessionMedium")
         _invalidos = ["(not set)", "", "null", "(referral)", "(direct)", "(none)"]
         def _valida(s): return str(s).strip() not in _invalidos and not str(s).strip().startswith("(")
+        _df_canal = df_evento[df_evento["canal_key"] == canal_key]
+        _total_eventos = _df_canal["eventCount"].sum()
         df = (
-            df_evento[df_evento["canal_key"] == canal_key]
+            _df_canal
             .groupby(group_cols, as_index=False)["eventCount"].sum()
             .loc[lambda d: d["sessionCampaignName"].apply(_valida)]
             .sort_values("eventCount", ascending=False)
         )
-        _total_eventos = df["eventCount"].sum()
         if df_sess is not None:
+            _df_sess_canal = df_sess[df_sess["canal_key"] == canal_key]
+            _total_sessoes = _df_sess_canal["sessions"].sum()
             df_s_camp = (
-                df_sess[df_sess["canal_key"] == canal_key]
+                _df_sess_canal
                 .groupby("sessionCampaignName", as_index=False)["sessions"].sum()
                 .loc[lambda d: d["sessionCampaignName"].apply(_valida)]
             )
             df = df.merge(df_s_camp, on="sessionCampaignName", how="left")
             df["sessions"] = df["sessions"].fillna(0).astype(int)
-        _total_sessoes = df["sessions"].sum() if df_sess is not None else None
+        else:
+            _total_sessoes = None
         df = df.head(top)
         rename_map = {"sessionCampaignName": col_nome, "eventCount": "Total"}
         if com_midia:
