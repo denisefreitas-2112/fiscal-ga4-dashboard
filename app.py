@@ -21,10 +21,7 @@ st.markdown("""
 <style>
     /* ── Topo ─────────────────────────────────────────────── */
     .block-container {
-        padding-top: 0.75rem !important;
-    }
-    header[data-testid="stHeader"] {
-        height: 0 !important;
+        padding-top: 2rem !important;
     }
     /* ── Sidebar ───────────────────────────────────────────── */
     section[data-testid="stSidebar"] {
