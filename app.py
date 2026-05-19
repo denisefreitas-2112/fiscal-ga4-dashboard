@@ -399,23 +399,13 @@ def show_metrics(metrics):
     )
 
 def show_table(df):
-    is_total = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
-    df_data  = df[~is_total].reset_index(drop=True)
-    df_total = df[is_total].reset_index(drop=True)
-    col_cfg  = {c: st.column_config.TextColumn(c) for c in df_data.columns}
-    st.dataframe(df_data.astype(str), use_container_width=True, hide_index=True, column_config=col_cfg)
-    if not df_total.empty:
-        cells = "".join(
-            f"<td style='padding:6px 14px;text-align:left;font-weight:700;color:#f8fafc;'>{v}</td>"
-            for v in df_total.iloc[0]
-        )
-        st.markdown(
-            f"<div style='border:1px solid #1e293b;border-radius:0 0 8px 8px;overflow:hidden;"
-            f"margin-top:-8px;margin-bottom:1rem;background:#1e293b;'>"
-            f"<table style='width:100%;border-collapse:collapse;'>"
-            f"<tbody><tr>{cells}</tr></tbody></table></div>",
-            unsafe_allow_html=True,
-        )
+    def _style(row):
+        if str(row.iloc[0]).upper() == "TOTAL":
+            return ["font-weight:700;color:#f8fafc;background-color:#1e293b"] * len(row)
+        return [""] * len(row)
+    col_cfg = {c: st.column_config.TextColumn(c) for c in df.columns}
+    styled  = df.astype(str).style.apply(_style, axis=1)
+    st.dataframe(styled, use_container_width=True, hide_index=True, column_config=col_cfg)
 
 def mom_delta(df, value_col, ym_col="yearMonth"):
     """Compara último mês com o anterior. Retorna string '+X.X%' ou None."""
