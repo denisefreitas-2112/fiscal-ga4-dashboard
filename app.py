@@ -439,7 +439,8 @@ def show_table(df):
         tot = '<tr class="total">'
         for col in cols:
             val = df_total.iloc[0][col]
-            tot += f'<td>{_fmt(val, col)}</td>'
+            cls = ' class="num"' if col in numeric_cols else ''
+            tot += f'<td{cls}>{_fmt(val, col)}</td>'
         tot += "</tr>"
 
     height = 44 + len(df_data) * 37 + (37 if not df_total.empty else 0) + 8
