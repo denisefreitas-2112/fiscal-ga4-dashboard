@@ -152,17 +152,24 @@ PLOTLY_DARK = dict(
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 @st.cache_resource
-def get_client():
+def _get_creds():
     creds = Credentials(
         token=None,
         refresh_token=st.secrets["GA4_REFRESH_TOKEN"],
         client_id=st.secrets["GA4_CLIENT_ID"],
         client_secret=st.secrets["GA4_CLIENT_SECRET"],
         token_uri="https://oauth2.googleapis.com/token",
-        scopes=["https://www.googleapis.com/auth/analytics.readonly"],
+        scopes=[
+            "https://www.googleapis.com/auth/analytics.readonly",
+            "https://www.googleapis.com/auth/webmasters.readonly",
+        ],
     )
     creds.refresh(Request())
-    return BetaAnalyticsDataClient(credentials=creds)
+    return creds
+
+@st.cache_resource
+def get_client():
+    return BetaAnalyticsDataClient(credentials=_get_creds())
 
 
 # ── Search Console ────────────────────────────────────────────────────────────
@@ -170,16 +177,7 @@ GSC_SITE = "https://conteudo.fiscal.io/"
 
 @st.cache_resource
 def get_gsc_service():
-    creds = Credentials(
-        token=None,
-        refresh_token=st.secrets["GA4_REFRESH_TOKEN"],
-        client_id=st.secrets["GA4_CLIENT_ID"],
-        client_secret=st.secrets["GA4_CLIENT_SECRET"],
-        token_uri="https://oauth2.googleapis.com/token",
-        scopes=["https://www.googleapis.com/auth/webmasters.readonly"],
-    )
-    creds.refresh(Request())
-    return gapi_build("searchconsole", "v1", credentials=creds)
+    return gapi_build("searchconsole", "v1", credentials=_get_creds())
 
 @st.cache_data(ttl=3600)
 def run_gsc_monthly(start, end):
