@@ -23,6 +23,11 @@ st.markdown("""
     .block-container {
         padding-top: 2rem !important;
     }
+    /* ── Tabelas: alinhamento à esquerda ─────────────────── */
+    [data-testid="stDataFrame"] td,
+    [data-testid="stDataFrame"] th {
+        text-align: left !important;
+    }
     /* ── Sidebar ───────────────────────────────────────────── */
     section[data-testid="stSidebar"] {
         background: #080c14 !important;
@@ -421,7 +426,7 @@ def show_table(df):
         flexes = [3] + [1] * (len(vals) - 1)
         cells = "".join(
             f"<div style='flex:{f};padding:6px 12px;font-weight:700;color:#f8fafc;"
-            f"overflow:hidden;white-space:nowrap;'>{v}</div>"
+            f"text-align:left;overflow:hidden;white-space:nowrap;'>{v}</div>"
             for f, v in zip(flexes, vals)
         )
         st.markdown(
