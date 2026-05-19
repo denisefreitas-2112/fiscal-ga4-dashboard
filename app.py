@@ -398,7 +398,8 @@ def show_table(df):
     is_total = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
     df_data  = df[~is_total].reset_index(drop=True)
     df_total = df[is_total].reset_index(drop=True)
-    st.dataframe(df_data, use_container_width=True, hide_index=True)
+    col_cfg  = {c: st.column_config.TextColumn(c) for c in df_data.columns}
+    st.dataframe(df_data.astype(str), use_container_width=True, hide_index=True, column_config=col_cfg)
     if not df_total.empty:
         cells = "".join(
             f"<td style='padding:6px 14px;text-align:center;font-weight:700;color:#f8fafc;'>{v}</td>"
