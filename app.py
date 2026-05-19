@@ -665,8 +665,8 @@ try:
             .groupby(group_cols, as_index=False)["eventCount"].sum()
             .loc[lambda d: d["sessionCampaignName"].apply(_valida)]
             .sort_values("eventCount", ascending=False)
-            .head(top)
         )
+        _total_eventos = df["eventCount"].sum()
         if df_sess is not None:
             df_s_camp = (
                 df_sess[df_sess["canal_key"] == canal_key]
@@ -675,6 +675,8 @@ try:
             )
             df = df.merge(df_s_camp, on="sessionCampaignName", how="left")
             df["sessions"] = df["sessions"].fillna(0).astype(int)
+        _total_sessoes = df["sessions"].sum() if df_sess is not None else None
+        df = df.head(top)
         rename_map = {"sessionCampaignName": col_nome, "eventCount": "Total"}
         if com_midia:
             rename_map["sessionMedium"] = "Midia"
@@ -689,9 +691,9 @@ try:
         if not df.empty:
             total_row = {col: "" for col in df.columns}
             total_row[col_nome] = "TOTAL"
-            total_row["Total"] = df["Total"].sum()
+            total_row["Total"] = _total_eventos
             if df_sess is not None:
-                total_row["Sessoes"] = df["Sessoes"].sum()
+                total_row["Sessoes"] = _total_sessoes
             df = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
         return df
 
