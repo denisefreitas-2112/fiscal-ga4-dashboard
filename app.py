@@ -203,13 +203,15 @@ def run_gsc_monthly(start, end):
             "position":    r["position"],
         } for r in rows])
         df["yearMonth"] = df["date"].str[:7].str.replace("-", "")
+        df["pos_x_imp"] = df["position"] * df["impressions"]
         df_m = (
             df.groupby("yearMonth")
-            .agg(position=("position", "mean"), clicks=("clicks", "sum"),
-                 impressions=("impressions", "sum"))
+            .agg(pos_x_imp=("pos_x_imp", "sum"), impressions=("impressions", "sum"),
+                 clicks=("clicks", "sum"))
             .reset_index()
         )
-        df_m["position"] = df_m["position"].round(1)
+        df_m["position"] = (df_m["pos_x_imp"] / df_m["impressions"]).round(1)
+        df_m = df_m.drop(columns=["pos_x_imp"])
         df_m["mes"] = df_m["yearMonth"].apply(
             lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}"
         )
