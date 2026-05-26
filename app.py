@@ -395,7 +395,7 @@ def show_metrics(metrics):
         unsafe_allow_html=True,
     )
 
-def show_table(df):
+def show_table(df, fixed_height=None):
     is_total = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
     df_data  = df[~is_total].reset_index(drop=True).copy()
     df_total = df[is_total].reset_index(drop=True).copy()
@@ -445,7 +445,7 @@ def show_table(df):
             tot += f'<td{cls}>{_fmt(val, col)}</td>'
         tot += "</tr>"
 
-    height = 44 + len(df_data) * 37 + (37 if not df_total.empty else 0) + 8
+    height = fixed_height if fixed_height is not None else (44 + len(df_data) * 37 + (37 if not df_total.empty else 0) + 8)
 
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}}
@@ -910,13 +910,22 @@ try:
             total_row = {"Artigo / Campanha": "TOTAL", "Sessoes": _tot_s, tot_col: _total_ev}
             return pd.concat([t, pd.DataFrame([total_row])], ignore_index=True)
 
+        tbl_leads = _build_blog_table(df_l, "Leads")
+        tbl_dl    = _build_blog_table(df_dl, "Downloads")
+
+        def _tbl_h(df):
+            is_tot = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
+            return 44 + (~is_tot).sum() * 37 + (37 if is_tot.any() else 0) + 8
+
+        h_blog = max(_tbl_h(tbl_leads), _tbl_h(tbl_dl))
+
         tc1, tc2 = st.columns(2)
         with tc1:
             st.caption("Leads gerados por artigo / campanha")
-            show_table(_build_blog_table(df_l, "Leads"))
+            show_table(tbl_leads, fixed_height=h_blog)
         with tc2:
             st.caption("Downloads por artigo / campanha")
-            show_table(_build_blog_table(df_dl, "Downloads"))
+            show_table(tbl_dl, fixed_height=h_blog)
     else:
         st.info("Sem dados de Blog no periodo.")
 
