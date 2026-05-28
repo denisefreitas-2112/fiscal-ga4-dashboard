@@ -436,21 +436,23 @@ def show_table(df, fixed_height=None):
                 trs += f'<td>{val}</td>'
         trs += "</tr>"
 
-    tot = ""
+    tot_cells = ""
+    tot_tfoot = ""
     if not df_total.empty:
-        tot = '<tr class="total">'
         for col in cols:
             val = df_total.iloc[0][col]
             cls = ' class="num"' if col in numeric_cols else ''
-            tot += f'<td{cls}>{_fmt(val, col)}</td>'
-        tot += "</tr>"
+            tot_cells += f'<td{cls}>{_fmt(val, col)}</td>'
+        tot_tfoot = f"<tfoot><tr class='total'>{tot_cells}</tr></tfoot>"
 
     height = int(fixed_height) if fixed_height is not None else (44 + len(df_data) * 37 + (37 if not df_total.empty else 0) + 8)
 
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}}
-html,body{{background:#0f1117;overflow:hidden}}
-table{{width:100%;border-collapse:collapse;font-size:13px;color:#e2e8f0}}
+html,body{{background:#0f1117;height:{height}px;overflow:hidden}}
+#wrap{{height:100%;overflow-y:auto;overflow-x:hidden}}
+table{{width:100%;border-collapse:collapse;font-size:13px;color:#e2e8f0;min-height:100%}}
+thead{{position:sticky;top:0;z-index:2}}
 thead th{{
   background:#1e293b;color:#94a3b8;font-size:11px;text-transform:uppercase;
   letter-spacing:.05em;font-weight:600;padding:9px 14px;text-align:left;
@@ -463,17 +465,18 @@ thead th.num{{text-align:center}}
 tbody td{{padding:8px 14px;text-align:left;border-bottom:1px solid #1a2234;white-space:nowrap}}
 tbody td.num{{text-align:center}}
 tbody tr:hover td{{background:rgba(59,130,246,.07)}}
-tr.total td{{background:#1e293b;font-weight:700;color:#f8fafc;border-top:2px solid #334155;border-bottom:none}}
-</style></head><body><table id="t">
+tfoot{{position:sticky;bottom:0;z-index:2}}
+tfoot td{{background:#1e293b;font-weight:700;color:#f8fafc;border-top:2px solid #334155}}
+</style></head><body><div id="wrap"><table id="t">
   <thead><tr>{ths}</tr></thead>
-  <tbody>{trs}{tot}</tbody>
-</table>
+  <tbody>{trs}</tbody>
+  {tot_tfoot}
+</table></div>
 <script>
 var _s={{col:null,dir:0}};
 function sc(i){{
   var tb=document.querySelector('#t tbody');
-  var rows=Array.from(tb.querySelectorAll('tr:not(.total)'));
-  var tot=tb.querySelector('tr.total');
+  var rows=Array.from(tb.querySelectorAll('tr'));
   _s.dir=(_s.col===i)?-_s.dir:-1;
   _s.col=i;
   document.querySelectorAll('#t thead th').forEach(function(th,j){{
@@ -486,7 +489,6 @@ function sc(i){{
       _s.dir*ac.textContent.localeCompare(bc.textContent);
   }});
   rows.forEach(function(r){{tb.appendChild(r);}});
-  if(tot)tb.appendChild(tot);
 }}
 </script></body></html>"""
 
@@ -913,19 +915,13 @@ try:
         tbl_leads = _build_blog_table(df_l, "Leads")
         tbl_dl    = _build_blog_table(df_dl, "Downloads")
 
-        def _tbl_h(df):
-            is_tot = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
-            return int(44 + int((~is_tot).sum()) * 37 + (37 if bool(is_tot.any()) else 0) + 8)
-
-        h_blog = int(max(_tbl_h(tbl_leads), _tbl_h(tbl_dl)))
-
         tc1, tc2 = st.columns(2)
         with tc1:
             st.caption("Leads gerados por artigo / campanha")
-            show_table(tbl_leads, fixed_height=h_blog)
+            show_table(tbl_leads, fixed_height=500)
         with tc2:
             st.caption("Downloads por artigo / campanha")
-            show_table(tbl_dl, fixed_height=h_blog)
+            show_table(tbl_dl, fixed_height=500)
     else:
         st.info("Sem dados de Blog no periodo.")
 
