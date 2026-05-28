@@ -445,7 +445,7 @@ def show_table(df, fixed_height=None):
             tot += f'<td{cls}>{_fmt(val, col)}</td>'
         tot += "</tr>"
 
-    height = fixed_height if fixed_height is not None else (44 + len(df_data) * 37 + (37 if not df_total.empty else 0) + 8)
+    height = int(fixed_height) if fixed_height is not None else (44 + len(df_data) * 37 + (37 if not df_total.empty else 0) + 8)
 
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}}
@@ -915,9 +915,9 @@ try:
 
         def _tbl_h(df):
             is_tot = df.iloc[:, 0].astype(str).str.upper() == "TOTAL"
-            return 44 + (~is_tot).sum() * 37 + (37 if is_tot.any() else 0) + 8
+            return int(44 + int((~is_tot).sum()) * 37 + (37 if bool(is_tot.any()) else 0) + 8)
 
-        h_blog = max(_tbl_h(tbl_leads), _tbl_h(tbl_dl))
+        h_blog = int(max(_tbl_h(tbl_leads), _tbl_h(tbl_dl)))
 
         tc1, tc2 = st.columns(2)
         with tc1:
