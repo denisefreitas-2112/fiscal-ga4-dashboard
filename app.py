@@ -681,67 +681,58 @@ try:
             lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}"
         )
 
-    # Filtro de mês aplicado client-side sobre os DataFrames já carregados
-    if ym_filter:
-        df_s         = df_s[df_s["yearMonth"] == ym_filter].copy()
-        df_l         = df_l[df_l["yearMonth"] == ym_filter].copy()
-        df_dl        = df_dl[df_dl["yearMonth"] == ym_filter].copy()
-        if not df_blog_host.empty:
-            df_blog_host = df_blog_host[df_blog_host["yearMonth"] == ym_filter].copy()
+    # _m(): filtra por mês para KPIs e tabelas; graficos usam o ano completo
+    def _m(df):
+        if ym_filter and "yearMonth" in df.columns:
+            return df[df["yearMonth"] == ym_filter]
+        return df
+
+    df_s_m  = _m(df_s)
+    df_l_m  = _m(df_l)
+    df_dl_m = _m(df_dl)
+    df_bh_m = _m(df_blog_host) if not df_blog_host.empty else df_blog_host
 
     ordem_mes   = sorted(df_s["yearMonth"].unique())
     meses_label = [f"{MESES[int(m[4:])-1]}/{m[2:4]}" for m in ordem_mes]
 
     def bar_chart(df, x, y, title, color, text_col=None):
         tc = text_col or y
-        text_vals = df[tc].apply(fmt_num)
         df_ord = df.set_index(x).reindex(meses_label).reset_index().dropna(subset=[y])
-        fig = px.bar(df_ord, x=x, y=y,
-            category_orders={x: meses_label},
-            labels={x: "", y: ""},
-            color_discrete_sequence=[color],
-            text=df_ord[tc].apply(fmt_num))
-        fig.update_traces(
+        h_lbl = (f"{MESES[int(ym_filter[4:])-1]}/{ym_filter[2:4]}"
+                 if ym_filter else None)
+        bar_colors = [
+            "#f59e0b" if h_lbl and v == h_lbl else color
+            for v in df_ord[x]
+        ]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=df_ord[x], y=df_ord[y],
+            marker=dict(color=bar_colors, line=dict(width=0)),
+            opacity=0.9,
+            text=df_ord[tc].apply(fmt_num),
             textposition="outside",
             textfont=dict(size=11, color="#94a3b8"),
             cliponaxis=False,
-            marker_line_width=0,
-            opacity=0.9,
-        )
+        ))
         if len(df_ord) > 1:
             y_vals = df_ord[y].astype(float).values
-            x_idx = np.arange(len(y_vals))
+            x_idx  = np.arange(len(y_vals))
             coeffs = np.polyfit(x_idx, y_vals, 1)
-            trend = coeffs[0] * x_idx + coeffs[1]
+            trend  = coeffs[0] * x_idx + coeffs[1]
             fig.add_trace(go.Scatter(
-                x=df_ord[x].tolist(),
-                y=trend,
-                mode="lines",
-                line=dict(color="#93c5fd", width=2, dash="dot"),
-                showlegend=False,
-                hoverinfo="skip",
+                x=df_ord[x].tolist(), y=trend.tolist(),
+                mode="lines", line=dict(color="#93c5fd", width=2, dash="dot"),
+                showlegend=False, hoverinfo="skip",
             ))
         fig.update_layout(
-            **PLOTLY_DARK,
-            showlegend=False,
-            title=dict(
-                text=title,
-                font=dict(size=13, color="#cbd5e1"),
-                x=0.015,
-                xanchor="left",
-                y=0.97,
-                yanchor="top",
-            ),
-            height=265,
-            bargap=0.38,
+            **PLOTLY_DARK, showlegend=False,
+            title=dict(text=title, font=dict(size=13, color="#cbd5e1"),
+                       x=0.015, xanchor="left", y=0.97, yanchor="top"),
+            height=265, bargap=0.38,
             margin=dict(t=44, b=14, l=14, r=14),
             yaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
-            xaxis=dict(
-                showgrid=False,
-                tickfont=dict(size=11, color="#64748b"),
-                tickangle=0,
-                linecolor="#1e293b",
-            ),
+            xaxis=dict(showgrid=False, tickfont=dict(size=11, color="#64748b"),
+                       tickangle=0, linecolor="#1e293b"),
         )
         return fig
 
@@ -813,23 +804,22 @@ try:
     # ═══════════════════════════════════════════════════════════════════════════
     st.markdown('<div class="sec-header">&#9999;&#65039; Analista de Conteudo &mdash; Blog</div>', unsafe_allow_html=True)
 
-    leads_blog    = df_l[df_l["canal_key"] == "blog"]["eventCount"].sum()
-    dl_blog_total = df_dl[df_dl["canal_key"] == "blog"]["eventCount"].sum()
+    _l_blog_m  = df_l_m[df_l_m["canal_key"] == "blog"]
+    _dl_blog_m = df_dl_m[df_dl_m["canal_key"] == "blog"]
+    leads_blog    = _l_blog_m["eventCount"].sum()
+    dl_blog_total = _dl_blog_m["eventCount"].sum()
 
     if not df_blog_host.empty:
-        total_sess_blog  = df_blog_host["sessions"].sum()
-        sess_blog_fiscal = df_s[df_s["canal_key"] == "blog"]["sessions"].sum()
-        ad = df_blog_host["averageSessionDuration"].mean()
-
-        df_l_blog  = df_l[df_l["canal_key"] == "blog"]
-        df_dl_blog = df_dl[df_dl["canal_key"] == "blog"]
+        total_sess_blog  = df_bh_m["sessions"].sum() if not df_bh_m.empty else 0
+        sess_blog_fiscal = df_s_m[df_s_m["canal_key"] == "blog"]["sessions"].sum()
+        ad = df_bh_m["averageSessionDuration"].mean() if not df_bh_m.empty else 0
 
         show_metrics([
             ("Sessoes Blog",       fmt_num(total_sess_blog)),
             ("Leads Blog",         fmt_num(leads_blog)),
-            ("Media Lead/mes",     media_mensal(leads_blog,    df_l_blog)),
+            ("Media Lead/mes",     media_mensal(leads_blog,    _l_blog_m)),
             ("Downloads Blog",     fmt_num(dl_blog_total)),
-            ("Media Download/mes", media_mensal(dl_blog_total, df_dl_blog)),
+            ("Media Download/mes", media_mensal(dl_blog_total, _dl_blog_m)),
             ("Conv. Lead",         taxa_conv(leads_blog,    sess_blog_fiscal)),
             ("Conv. Download",     taxa_conv(dl_blog_total, sess_blog_fiscal)),
             ("Duracao media",      f"{int(ad//60)}m {int(ad%60)}s"),
@@ -865,19 +855,23 @@ try:
 
         # ── Search Console: posicao media mensal ──────────────
         df_gsc = run_gsc_monthly(start_date, end_date)
-        if ym_filter and df_gsc is not None and not df_gsc.empty:
-            df_gsc = df_gsc[df_gsc["yearMonth"] == ym_filter]
         if df_gsc is None:
             st.warning("Search Console: sem permissao no token atual. Gere um novo token com o scope webmasters.readonly.")
         elif not df_gsc.empty:
             x_idx_gsc = np.arange(len(df_gsc))
             coeffs_gsc = np.polyfit(x_idx_gsc, df_gsc["position"].values, 1)
             trend_gsc  = coeffs_gsc[0] * x_idx_gsc + coeffs_gsc[1]
+            h_lbl_gsc  = (f"{MESES[int(ym_filter[4:])-1]}/{ym_filter[2:4]}"
+                          if ym_filter else None)
+            gsc_colors = [
+                "#f59e0b" if h_lbl_gsc and v == h_lbl_gsc else COR_BARRA
+                for v in df_gsc["mes"]
+            ]
             fig_gsc = go.Figure()
             fig_gsc.add_trace(go.Bar(
                 x=df_gsc["mes"], y=df_gsc["position"],
                 name="Posicao media",
-                marker_color=COR_BARRA,
+                marker_color=gsc_colors,
                 marker_line_width=0,
                 opacity=0.9,
                 text=df_gsc["position"].apply(lambda v: f"{v:.1f}"),
@@ -919,8 +913,8 @@ try:
             s = str(s).strip()
             return "Sem UTM" if (s in {"(not set)", "", "null"} or s.startswith("(")) else s
 
-        # Sessoes filtradas por medium do blog, agrupadas por campanha
-        _df_bs = df_s[df_s["sessionMedium"].str.lower().isin(_midia_map)].copy()
+        # Sessoes filtradas por medium do blog, agrupadas por campanha (mes selecionado)
+        _df_bs = df_s_m[df_s_m["sessionMedium"].str.lower().isin(_midia_map)].copy()
         _df_bs["sessionCampaignName"] = _df_bs["sessionCampaignName"].apply(_norm_camp_blog)
         _blog_sess = _df_bs.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
 
@@ -940,8 +934,8 @@ try:
             total_row = {"Artigo / Campanha": "TOTAL", "Sessoes": _tot_s, tot_col: _total_ev}
             return pd.concat([t, pd.DataFrame([total_row])], ignore_index=True)
 
-        tbl_leads = _build_blog_table(df_l, "Leads")
-        tbl_dl    = _build_blog_table(df_dl, "Downloads")
+        tbl_leads = _build_blog_table(df_l_m, "Leads")
+        tbl_dl    = _build_blog_table(df_dl_m, "Downloads")
 
         tc1, tc2 = st.columns(2)
         with tc1:
@@ -958,26 +952,28 @@ try:
     # ═══════════════════════════════════════════════════════════════════════════
     st.markdown('<div class="sec-header">&#128231; Analista de Automacao &mdash; E-mail / Zoho Marketing Hub</div>', unsafe_allow_html=True)
 
+    # Grafico: ano completo; KPIs e tabelas: mes selecionado
     df_em     = df_s[df_s["canal_key"] == "email"]
     df_em_mes = df_em.groupby(["yearMonth","mes"], as_index=False).agg(
         sessions=("sessions","sum"),
         engagedSessions=("engagedSessions","sum"),
     ).sort_values("yearMonth")
 
-    leads_em = df_l[df_l["canal_key"]  == "email"]["eventCount"].sum()
-    dl_em    = df_dl[df_dl["canal_key"] == "email"]["eventCount"].sum()
+    _em_m    = df_s_m[df_s_m["canal_key"] == "email"]
+    leads_em = df_l_m[df_l_m["canal_key"] == "email"]["eventCount"].sum()
+    dl_em    = df_dl_m[df_dl_m["canal_key"] == "email"]["eventCount"].sum()
 
     if not df_em_mes.empty:
-        total_sess_em = df_em_mes["sessions"].sum()
+        total_sess_em = _em_m["sessions"].sum()
         ad_em = (
-            (df_em["averageSessionDuration"] * df_em["sessions"]).sum() / df_em["sessions"].sum()
-            if df_em["sessions"].sum() > 0 else 0
+            (_em_m["averageSessionDuration"] * _em_m["sessions"]).sum() / _em_m["sessions"].sum()
+            if _em_m["sessions"].sum() > 0 else 0
         )
 
         show_metrics([
             ("Sessoes Email",   fmt_num(total_sess_em)),
             ("Leads Email",     fmt_num(leads_em)),
-            ("Media Lead/mes",  media_mensal(leads_em, df_l[df_l["canal_key"] == "email"])),
+            ("Media Lead/mes",  media_mensal(leads_em, df_l_m[df_l_m["canal_key"] == "email"])),
             ("Conv. Lead",      taxa_conv(leads_em, total_sess_em)),
             ("Duracao media",   f"{int(ad_em//60)}m {int(ad_em%60)}s"),
         ])
@@ -1002,13 +998,13 @@ try:
             s = str(s).strip()
             return s not in {"(not set)", "", "null"} and not s.startswith("(")
 
-        _em_sess = df_s[df_s["canal_key"] == "email"].copy()
+        _em_sess = df_s_m[df_s_m["canal_key"] == "email"].copy()
         _em_sess["sessionCampaignName"] = _em_sess["sessionCampaignName"].apply(
             lambda s: s if _camp_valida_em(s) else "Sem campanha"
         )
         _zoho_sess = _em_sess.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
 
-        _em_leads = df_l[df_l["canal_key"] == "email"].copy()
+        _em_leads = df_l_m[df_l_m["canal_key"] == "email"].copy()
         _em_leads["sessionCampaignName"] = _em_leads["sessionCampaignName"].apply(
             lambda s: s if _camp_valida_em(s) else "Sem campanha"
         )
@@ -1040,6 +1036,7 @@ try:
     st.markdown('<div class="sec-header">&#128227; Analista de Midias Digitais &mdash; Google Ads e Meta Ads</div>', unsafe_allow_html=True)
 
     def graficos_canal(key, label, cor, com_downloads=True):
+        # Graficos: ano completo
         df_sess = (df_s[df_s["canal_key"] == key]
             .groupby(["yearMonth","mes"], as_index=False)["sessions"].sum()
             .sort_values("yearMonth"))
@@ -1050,12 +1047,12 @@ try:
             .groupby(["yearMonth","mes"], as_index=False)["eventCount"].sum()
             .sort_values("yearMonth"))
 
-        total_sess  = df_sess["sessions"].sum() if not df_sess.empty else 0
-        total_leads = df_lead["eventCount"].sum() if not df_lead.empty else 0
-        total_dl    = df_down["eventCount"].sum() if not df_down.empty else 0
-
-        df_l_canal  = df_l[df_l["canal_key"] == key]
-        df_dl_canal = df_dl[df_dl["canal_key"] == key]
+        # KPIs: periodo selecionado
+        total_sess  = df_s_m[df_s_m["canal_key"] == key]["sessions"].sum()
+        total_leads = df_l_m[df_l_m["canal_key"] == key]["eventCount"].sum()
+        total_dl    = df_dl_m[df_dl_m["canal_key"] == key]["eventCount"].sum()
+        df_l_canal  = df_l_m[df_l_m["canal_key"] == key]
+        df_dl_canal = df_dl_m[df_dl_m["canal_key"] == key]
 
         if com_downloads:
             show_metrics([
@@ -1094,11 +1091,11 @@ try:
                 f"Evolucao da Taxa de Conversao — {label}",
             ), use_container_width=True)
 
-        # Tabelas de campanha
-        t_leads = tabela_campanhas(key, df_l,  "Campanha")
+        # Tabelas de campanha: periodo selecionado
+        t_leads = tabela_campanhas(key, df_l_m, "Campanha")
         col_nome = "Campanha"
         if com_downloads:
-            t_dl = tabela_campanhas(key, df_dl, col_nome)
+            t_dl = tabela_campanhas(key, df_dl_m, col_nome)
             tm1, tm2 = st.columns(2)
             with tm1:
                 st.caption(f"Leads por campanha — {label}")
