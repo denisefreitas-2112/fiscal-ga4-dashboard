@@ -11,6 +11,7 @@ from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta import types as ga4_types
 from googleapiclient.discovery import build as gapi_build
 from datetime import date
+import calendar
 
 st.set_page_config(
     page_title="Painel de Desempenho - Marketing - Fiscal.IO",
@@ -617,9 +618,30 @@ st.sidebar.markdown(
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Ano de referencia**")
-ano = st.sidebar.selectbox("", [2026, 2025], index=0, label_visibility="collapsed")
-start_date = f"{ano}-01-01"
-end_date   = date.today().strftime("%Y-%m-%d")
+ano = st.sidebar.selectbox("ano", [2026, 2025], index=0, label_visibility="collapsed")
+
+today = date.today()
+max_mes = 12 if ano < today.year else today.month
+opcoes_mes = ["Todos os meses"] + MESES[:max_mes]
+
+st.sidebar.markdown("**Mes**")
+mes_sel = st.sidebar.selectbox("mes", opcoes_mes, index=0, label_visibility="collapsed")
+
+if mes_sel == "Todos os meses":
+    start_date    = f"{ano}-01-01"
+    end_date      = f"{ano}-12-31" if ano < today.year else today.strftime("%Y-%m-%d")
+    periodo_label = str(ano)
+else:
+    mes_num    = MESES.index(mes_sel) + 1
+    ultimo_dia = calendar.monthrange(ano, mes_num)[1]
+    start_date = f"{ano}-{mes_num:02d}-01"
+    end_date   = (
+        today.strftime("%Y-%m-%d")
+        if ano == today.year and mes_num == today.month
+        else f"{ano}-{mes_num:02d}-{ultimo_dia:02d}"
+    )
+    periodo_label = f"{mes_sel}/{str(ano)[2:]}"
+
 st.sidebar.markdown("---")
 st.sidebar.caption("Google Analytics 4")
 st.sidebar.caption("Property 307883096")
@@ -631,7 +653,7 @@ st.markdown(
     f"Painel de Desempenho - Marketing</h1>"
     f"<p style='color:#64748b;font-size:0.82rem;margin:0 0 0.5rem 0;"
     f"letter-spacing:0.03em;'>"
-    f"Fiscal.IO &nbsp;&nbsp;·&nbsp;&nbsp; {ano} &nbsp;&nbsp;·&nbsp;&nbsp; "
+    f"Fiscal.IO &nbsp;&nbsp;·&nbsp;&nbsp; {periodo_label} &nbsp;&nbsp;·&nbsp;&nbsp; "
     f"Blog &nbsp;|&nbsp; E-mail &nbsp;|&nbsp; Google Ads &nbsp;|&nbsp; Meta Ads</p>",
     unsafe_allow_html=True,
 )
