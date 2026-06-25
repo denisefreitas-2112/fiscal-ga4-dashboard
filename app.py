@@ -11,7 +11,6 @@ from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta import types as ga4_types
 from googleapiclient.discovery import build as gapi_build
 from datetime import date
-import calendar
 
 st.set_page_config(
     page_title="Painel de Desempenho - Marketing - Fiscal.IO",
@@ -627,19 +626,16 @@ opcoes_mes = ["Todos os meses"] + MESES[:max_mes]
 st.sidebar.markdown("**Mes**")
 mes_sel = st.sidebar.selectbox("mes", opcoes_mes, index=0, label_visibility="collapsed")
 
+# GA4 busca sempre o ano inteiro; filtro de mês é aplicado no DataFrame
+start_date = f"{ano}-01-01"
+end_date   = f"{ano}-12-31" if ano < today.year else today.strftime("%Y-%m-%d")
+
 if mes_sel == "Todos os meses":
-    start_date    = f"{ano}-01-01"
-    end_date      = f"{ano}-12-31" if ano < today.year else today.strftime("%Y-%m-%d")
+    ym_filter     = None
     periodo_label = str(ano)
 else:
-    mes_num    = MESES.index(mes_sel) + 1
-    ultimo_dia = calendar.monthrange(ano, mes_num)[1]
-    start_date = f"{ano}-{mes_num:02d}-01"
-    end_date   = (
-        today.strftime("%Y-%m-%d")
-        if ano == today.year and mes_num == today.month
-        else f"{ano}-{mes_num:02d}-{ultimo_dia:02d}"
-    )
+    mes_num       = MESES.index(mes_sel) + 1
+    ym_filter     = f"{ano}{mes_num:02d}"
     periodo_label = f"{mes_sel}/{str(ano)[2:]}"
 
 st.sidebar.markdown("---")
@@ -684,6 +680,14 @@ try:
         df_blog_host["mes"] = df_blog_host["yearMonth"].apply(
             lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}"
         )
+
+    # Filtro de mês aplicado client-side sobre os DataFrames já carregados
+    if ym_filter:
+        df_s         = df_s[df_s["yearMonth"] == ym_filter].copy()
+        df_l         = df_l[df_l["yearMonth"] == ym_filter].copy()
+        df_dl        = df_dl[df_dl["yearMonth"] == ym_filter].copy()
+        if not df_blog_host.empty:
+            df_blog_host = df_blog_host[df_blog_host["yearMonth"] == ym_filter].copy()
 
     ordem_mes   = sorted(df_s["yearMonth"].unique())
     meses_label = [f"{MESES[int(m[4:])-1]}/{m[2:4]}" for m in ordem_mes]
@@ -861,6 +865,8 @@ try:
 
         # ── Search Console: posicao media mensal ──────────────
         df_gsc = run_gsc_monthly(start_date, end_date)
+        if ym_filter and df_gsc is not None and not df_gsc.empty:
+            df_gsc = df_gsc[df_gsc["yearMonth"] == ym_filter]
         if df_gsc is None:
             st.warning("Search Console: sem permissao no token atual. Gere um novo token com o scope webmasters.readonly.")
         elif not df_gsc.empty:
