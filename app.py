@@ -511,7 +511,7 @@ def mom_delta(df, value_col, ym_col="yearMonth"):
 def taxa_conv(leads, sessions):
     if sessions == 0:
         return "—"
-    return f"{leads / sessions * 100:.1f}%"
+    return f"{leads / sessions * 100:.2f}%"
 
 def media_mensal(total, df_canal, ym_col="yearMonth"):
     n = df_canal[ym_col].nunique() if not df_canal.empty else 0
@@ -528,7 +528,7 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
     merged["mes"] = merged["yearMonth"].apply(lambda ym: f"{MESES[int(ym[4:])-1]}/{ym[2:4]}")
     merged = merged.sort_values("yearMonth")
     merged["conv_lead"] = merged.apply(
-        lambda r: round(r["leads"] / r["sessions"] * 100, 1) if r["sessions"] > 0 else None, axis=1)
+        lambda r: round(r["leads"] / r["sessions"] * 100, 2) if r["sessions"] > 0 else None, axis=1)
     x_idx = np.arange(len(merged))
 
     def _trendline(series, color):
@@ -552,7 +552,7 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
         mode="lines+markers+text",
         line=dict(color=COR_BARRA, width=2),
         marker=dict(size=7),
-        text=merged["conv_lead"].apply(lambda v: f"{v:.1f}%" if v is not None else ""),
+        text=merged["conv_lead"].apply(lambda v: f"{v:.2f}%" if v is not None else ""),
         textposition="top center",
         textfont=dict(size=10, color="#94a3b8"),
     ))
@@ -562,13 +562,13 @@ def grafico_taxa_conv(df_sess_raw, df_lead_raw, df_down_raw=None, title=""):
 
     if "downloads" in merged.columns:
         merged["conv_dl"] = merged.apply(
-            lambda r: round(r["downloads"] / r["sessions"] * 100, 1) if r["sessions"] > 0 else None, axis=1)
+            lambda r: round(r["downloads"] / r["sessions"] * 100, 2) if r["sessions"] > 0 else None, axis=1)
         fig.add_trace(go.Scatter(
             x=merged["mes"], y=merged["conv_dl"], name="Conv. Download",
             mode="lines+markers+text",
             line=dict(color="#60a5fa", width=2, dash="dot"),
             marker=dict(size=7),
-            text=merged["conv_dl"].apply(lambda v: f"{v:.1f}%" if v is not None else ""),
+            text=merged["conv_dl"].apply(lambda v: f"{v:.2f}%" if v is not None else ""),
             textposition="bottom center",
             textfont=dict(size=10, color="#94a3b8"),
         ))
