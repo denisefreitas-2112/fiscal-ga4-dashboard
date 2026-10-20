@@ -234,7 +234,8 @@ def classify_canal(channel_group, source, medium):
         return "blog"
 
     # E-mail / Zoho
-    if cg == "email" or med in ("email", "e-mail") or "zoho" in src or "email" in src:
+    _email_srcs = {"email", "e-mail", "mail", "zohomarketinghub"}
+    if cg == "email" or med in ("email", "e-mail") or src in _email_srcs or "zoho" in src:
         return "email"
 
     # Google Ads (Paid Search)
