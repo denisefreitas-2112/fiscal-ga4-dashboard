@@ -229,8 +229,8 @@ def classify_canal(channel_group, source, medium):
     src = str(source).lower().strip()
     med = str(medium).lower().strip()
 
-    # Blog: source=blog OU medium=artigo/blog OU referral de conteudo.fiscal.io
-    if src == "blog" or med in ("artigo", "blog") or "conteudo.fiscal" in src:
+    # Blog: source contém "blog" OU medium contém "blog"/é "artigo" OU referral de conteudo.fiscal.io
+    if "blog" in src or "blog" in med or med == "artigo" or "conteudo.fiscal" in src:
         return "blog"
 
     # E-mail / Zoho
@@ -914,7 +914,10 @@ try:
             return "Sem UTM" if (s in {"(not set)", "", "null"} or s.startswith("(")) else s
 
         # Sessoes filtradas por medium do blog, agrupadas por campanha (mes selecionado)
-        _df_bs = df_s_m[df_s_m["sessionMedium"].str.lower().isin(_midia_map)].copy()
+        _df_bs = df_s_m[
+            df_s_m["sessionMedium"].str.lower().isin(_midia_map) |
+            (df_s_m["sessionSource"].str.lower() == "blog")
+        ].copy()
         _df_bs["sessionCampaignName"] = _df_bs["sessionCampaignName"].apply(_norm_camp_blog)
         _blog_sess = _df_bs.groupby("sessionCampaignName", as_index=False)["sessions"].sum()
 
