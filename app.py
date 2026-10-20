@@ -229,8 +229,8 @@ def classify_canal(channel_group, source, medium):
     src = str(source).lower().strip()
     med = str(medium).lower().strip()
 
-    # Blog: source=blog (case-insensitive) OU medium=artigo/blog — apenas UTM-tagged
-    if src == "blog" or med in ("artigo", "blog"):
+    # Blog: source/medium contém "blog" OU medium=artigo (exceto central-de-ajuda)
+    if "blog" in src or "blog" in med or (med == "artigo" and src != "central-de-ajuda"):
         return "blog"
 
     # E-mail / Zoho
